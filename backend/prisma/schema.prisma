@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  SENT
+  SEEN
+  EDITED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  userName  String?  @unique
+  name      String
+  email     String   @unique
+  password  String?
+  birth     String?
+  provider  String   @default("jwt")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Content Content[]
+  Chat    Chat[]    @relation("UserCreatedChats")
+  ChatAdd Chat[]    @relation("UserParticipantChats")
+
+  @@map("users")
+}
+
+model Chat {
+  id         String   @id @default(uuid())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  active     Boolean
+  createId   String
+  deletedFor String[] @default([])
+
+  create       User      @relation("UserCreatedChats", fields: [createId], references: [id])
+  participants User[]    @relation("UserParticipantChats")
+  Content      Content[]
+}
+
+model Content {
+  id        String   @id @default(uuid())
+  message   String
+  status    Status   @default(SENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  chatId    String
+  type      String   @default("text")
+
+  author User @relation(fields: [authorId], references: [id])
+  chat   Chat @relation(fields: [chatId], references: [id])
+
+  @@index([chatId])
+  @@index([authorId])
+}
