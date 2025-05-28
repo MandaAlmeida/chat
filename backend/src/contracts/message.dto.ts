@@ -1,7 +1,10 @@
-import { IsBoolean, IsString } from "class-validator"
+import { IsArray, IsBoolean, IsString } from "class-validator"
 
 
 export class CreateMessageDTO {
+    @IsArray()
+    recipients: string[]
+
     @IsString()
     message: string
 

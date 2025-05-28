@@ -9,9 +9,6 @@ import {
 } from "class-validator";
 
 export class CreateUserDTO {
-    @IsString()
-    userName: string;
-
     @IsNotEmpty({ message: "O nome é obrigatório." })
     @IsString()
     name: string;
@@ -58,10 +55,6 @@ export class LoginUserDTO {
 }
 
 export class UpdateUserDTO {
-    @IsOptional()
-    @IsString()
-    userName?: string;
-
     @IsOptional()
     @IsString()
     name: string;

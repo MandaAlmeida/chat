@@ -3,12 +3,13 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from 'src/auth/current-user-decorator';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from 'src/contracts/user.dto';
+import { EnvService } from 'src/env/env.service';
 import { UserService } from 'src/service/user.service';
 
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService, private config: EnvService) { }
 
   @Post()
   create(@Body() createUserDto: CreateUserDTO) {
@@ -41,12 +42,13 @@ export class UserController {
     });
 
     // Redireciona com o token
-    res.redirect(`http://localhost:5173/?token=${result.token}`);
+    res.redirect(`${this.config.get('URL_FRONTEND')}/?token=${result.token}`);
   }
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  @UseGuards(JwtAuthGuard)
+  findAll(@CurrentUser() user: { sub: string }) {
+    return this.userService.findAll(user);
   }
 
   @Get('/me')

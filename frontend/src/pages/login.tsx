@@ -1,23 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [form, setForm] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
 
-    // Aqui capturamos o token da URL ao montar o componente
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(location.search);
         const token = params.get('token');
 
         if (token) {
             localStorage.setItem('token', token);
-            window.history.replaceState({}, document.title, "/login"); // limpa URL
-            navigate('/chat'); // redireciona para chat
+            window.history.replaceState({}, document.title, "/login");
+            navigate('/chat');
         }
-    }, [navigate]);
+    }, [location.search, navigate]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });

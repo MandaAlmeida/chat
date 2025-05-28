@@ -2,22 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMessageDTO, UpdateMessageDTO } from 'src/contracts/message.dto';
 import { PrismaService } from './prisma.service';
 import { Status } from '@prisma/client';
-import { MessageGateway } from 'src/gateway/message.gateway';
-
 
 @Injectable()
 export class MessageService {
-    constructor(private prisma: PrismaService, private socket: MessageGateway) { }
+    constructor(private prisma: PrismaService) { }
 
     async sendMessage(user: { sub: string }, newMessage: CreateMessageDTO) {
         const { message, chatId } = newMessage;
-
-        this.socket.sendChat(user.sub, {
-            sender: user.sub,
-            content: message,
-            timestamp: new Date().toISOString()
-        });
-
         return await this.prisma.content.create({
             data: {
                 message,
@@ -36,7 +27,7 @@ export class MessageService {
         const messagens = await this.prisma.content.findMany({
             where: { chatId },
             orderBy: {
-                createdAt: 'desc'
+                createdAt: 'asc'
             }
         })
 

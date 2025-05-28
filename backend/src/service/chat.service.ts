@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateChatDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
+import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
+import { TypeChat } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
     constructor(private prisma: PrismaService) { }
 
-    async findBetweenUsers(user: { sub: string }, userId: string) {
-        return this.prisma.chat.findFirst({
+    async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
+        const userId = createChat.participant
+
+        const chats = await this.prisma.chat.findFirst({
             where: {
                 OR: [
                     { createId: user.sub, participants: { some: { id: userId } } },
@@ -15,36 +18,46 @@ export class ChatService {
                 ]
             }
         });
+
+        return chats
     }
 
 
-    async createChat(user: { sub: string }, userId: string) {
+    async createChat(user: { sub: string }, createChat: CreateChatDTO) {
+        const { name, participant } = createChat;
+
         const existUser = await this.prisma.user.findUnique({
-            where: { id: userId },
+            where: { id: participant },
         });
 
         if (!existUser) throw new NotFoundException('Usuário não encontrado');
 
-        return this.prisma.chat.create({
+        return await this.prisma.chat.create({
             data: {
-                name: existUser.name,
+                name,
                 createId: user.sub,
                 active: true,
+                type: TypeChat.INDIVIDUAL,
                 participants: {
-                    connect: [{ id: userId }]
+                    connect: [{ id: participant }]
                 }
             }
         });
     }
 
-    async createGroupChat(userId: { sub: string }, createGroup: CreateChatDTO) {
+    async createGroupChat(userId: { sub: string }, createGroup: CreateGroupDTO) {
         const { name, participants } = createGroup
 
-        return this.prisma.chat.create({
+        const userParticipant = participants.map(participant => participant === userId.sub)
+
+        if (!userParticipant) throw new NotFoundException('Você não pode criar chat com seu usuário');
+
+        return await this.prisma.chat.create({
             data: {
                 name,
                 createId: userId.sub,
                 active: true,
+                type: TypeChat.GROUP,
                 participants: {
                     connect: participants.map(participantId => ({ id: participantId }))
                 }
@@ -53,13 +66,19 @@ export class ChatService {
     }
 
     async findChat(userId: { sub: string }) {
-        console.log(userId.sub)
-
-        return this.prisma.chat.findMany({
+        const chats = await this.prisma.chat.findMany({
             where: {
-                OR: [{ createId: userId.sub, participants: { some: { id: userId.sub } } }]
+                OR: [
+                    { createId: userId.sub },
+                    { participants: { some: { id: userId.sub } } }
+                ]
+            },
+            include: {
+                participants: true
             }
         });
+
+        return chats
     }
 
 

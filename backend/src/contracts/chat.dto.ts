@@ -6,8 +6,17 @@ export class CreateChatDTO {
     name: string
 
     @IsArray()
+    participant: string
+}
+
+export class CreateGroupDTO {
+    @IsString()
+    name: string
+
+    @IsArray()
     participants: string[]
 }
+
 
 export class UpdateGroupChatDTO {
     @IsString()

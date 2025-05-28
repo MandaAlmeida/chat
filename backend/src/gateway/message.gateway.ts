@@ -8,13 +8,11 @@ import {
     ConnectedSocket
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { MessageService } from 'src/service/message.service';
 
 @WebSocketGateway({
     cors: {
         origin: 'http://localhost:5173',
-        methods: ['GET', 'POST'],
-        credentials: true
+        methods: ['GET', 'POST']
     },
     path: '/socket.io',
     serveClient: false,
@@ -51,20 +49,33 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
         this.joinUserRoom(client, userId);
     }
 
-    // @SubscribeMessage('sendMessage')
-    // async handleSendMessage(
-    //     @MessageBody() data: { to: string; message: string; chatId: string },
-    //     @ConnectedSocket() client: Socket
-    // ) {
-    //     const senderId = client.data?.userId;
 
-    //     await this.messageService.sendMessage(senderId, {
-    //         chatId: data.chatId,
-    //         message: data.message
-    //     });
+    @SubscribeMessage('sendMessage')
+    async handleSendMessage(
+        @MessageBody() data: { to: string[]; message: string; chatId: string },
+        @ConnectedSocket() client: Socket
+    ) {
+        const senderId = client.data?.userId;
 
+        if (!senderId) {
+            console.warn('Usuário não autenticado no socket');
+            return;
+        }
 
+        const chat = {
+            sender: senderId,
+            content: data.message,
+            chatId: data.chatId
+        };
 
-    // }
+        // Envia para todos os participantes, incluindo o remetente se quiser
+        for (const userId of data.to) {
+            this.sendChat(userId, chat);
+        }
+
+        // Opcional: enviar para o remetente também
+        this.sendChat(senderId, chat);
+    }
+
 
 }

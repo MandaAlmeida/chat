@@ -17,6 +17,9 @@ export class EnvDTO {
     URL_GOOGLE: string
 
     @IsString()
+    URL_FRONTEND: string
+
+    @IsString()
     JWT_PRIVATE_KEY: string
 
     @IsString()

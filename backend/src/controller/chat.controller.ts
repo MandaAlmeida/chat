@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from 'src/auth/current-user-decorator';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { CreateChatDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
+import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
 import { ChatService } from 'src/service/chat.service';
 
 @Controller('chat')
@@ -10,23 +10,23 @@ export class ChatController {
   constructor(private chatService: ChatService) { }
 
   @Post()
-  async createChat(@CurrentUser() user: { sub: string }, @Body() participantId: string) {
-    return this.chatService.createChat(user, participantId);
+  async createChat(@CurrentUser() user: { sub: string }, @Body() createChat: CreateChatDTO) {
+    return this.chatService.createChat(user, createChat);
   }
 
   @Post('get-or-create')
-  async getOrCreateChat(@CurrentUser() user: { sub: string }, @Body("participantId") participantId: string) {
-    let chat = await this.chatService.findBetweenUsers(user, participantId);
+  async getOrCreateChat(@CurrentUser() user: { sub: string }, @Body() createChat: CreateChatDTO) {
+    let chat = await this.chatService.findBetweenUsers(user, createChat);
 
     if (!chat) {
-      chat = await this.chatService.createChat(user, participantId);
+      chat = await this.chatService.createChat(user, createChat);
     }
 
     return chat;
   }
 
   @Post('create-group')
-  async createGroupChat(@CurrentUser() user: { sub: string }, @Body() createGroup: CreateChatDTO) {
+  async createGroupChat(@CurrentUser() user: { sub: string }, @Body() createGroup: CreateGroupDTO) {
     return await this.chatService.createGroupChat(user, createGroup);
   }
 

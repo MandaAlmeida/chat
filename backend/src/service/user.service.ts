@@ -11,11 +11,10 @@ import { randomBytes } from 'crypto';
 export class UserService {
   constructor(
     private jwt: JwtService,
-    private prisma: PrismaService,
-    private google: GoogleStrategy
+    private prisma: PrismaService
   ) { }
   async create(createUserDto: CreateUserDTO) {
-    const { userName, name, email, birth, password, passwordConfirmation } = createUserDto
+    const { name, email, birth, password, passwordConfirmation } = createUserDto
 
     const existUser = await this.prisma.user.findUnique({ where: { email } })
 
@@ -26,7 +25,6 @@ export class UserService {
     const hashPassword = await hash(password, 8)
 
     const newUser = {
-      userName,
       name,
       email,
       birth,
@@ -38,14 +36,13 @@ export class UserService {
   }
 
   async finishregisterOAuthUser(user: CreateUserDTO) {
-    const { email, birth, name, userName, provider } = user;
+    const { email, birth, name, provider } = user;
 
     const existUser = await this.prisma.user.findUnique({ where: { email } })
     const updateUser = await this.prisma.user.update({
       where: { id: existUser?.id },
       data: {
         email,
-        userName,
         birth,
         name,
         provider,
@@ -75,14 +72,12 @@ export class UserService {
       where: { email: profile.email },
     });
 
-    const userName = 'user_' + randomBytes(4).toString('hex');
 
     if (!existUser) {
 
       const userData = {
         email: profile.email,
         name: profile.name,
-        userName,
         birth: "",
         provider: 'google',
       };
@@ -98,15 +93,22 @@ export class UserService {
     return { token: accessToken };
   }
 
-  async findAll() {
+  async findAll(user: { sub: string }) {
     const existUsers = await this.prisma.user.findMany({
+      where: {
+        id: {
+          not: user.sub,
+        },
+      },
       select: {
         id: true,
-        userName: true,
-      }
-    })
+        name: true
+      },
+    });
 
-    if (!existUsers) throw new ConflictException("Úsuario não encontrado")
+    if (!existUsers || existUsers.length === 0) {
+      throw new ConflictException("Usuários não encontrados");
+    }
 
     return existUsers;
   }
@@ -124,10 +126,6 @@ export class UserService {
 
     return existUser;
   }
-
-  // update(id: string, updateUserDto: UpdateUserDTO) {
-  //   return `This action updates a #${id} user`;
-  // }
 
   async removeUser(user: { sub: string }) {
     const chats = await this.prisma.chat.findMany({

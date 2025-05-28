@@ -1,22 +1,26 @@
 
 import { useEffect, useRef } from 'react';
-import type { User } from '../types/types';
+import type { ChatProps, Message, User } from '../types/types';
 
 interface Props {
-    selectedUser: User;
-    currentUser: User;
-    messages: string[];
+    selectedChat: ChatProps;
+    messages: Message[];
     message: string;
     setMessage: (msg: string) => void;
     handleSendMessage: () => void;
+    users: User[] | null
+    currentUser: User | null
+
 }
 
-export default function ChatWindow({
-    selectedUser,
+export default function ChatPropsWindow({
+    selectedChat,
     messages,
     message,
     setMessage,
-    handleSendMessage
+    handleSendMessage,
+    users,
+    currentUser
 }: Props) {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -25,12 +29,21 @@ export default function ChatWindow({
     }, [messages]);
 
     return (
-        <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Chat com {selectedUser.name}</h3>
+        <div className="w-full p-4">
+            <h3 className="text-lg font-semibold mb-2">Chat com {selectedChat.type !== "GROUP" ? selectedChat.participants ? (selectedChat.participants.find(participant => participant.id !== currentUser?.id)?.name || selectedChat.name) : "Desconhecido" : selectedChat.name}</h3>
             <div className="border border-gray-300 h-72 overflow-y-auto p-2 rounded bg-gray-100">
-                {messages.map((msg, idx) => (
+                {messages && messages.map((msg, idx) => (
                     <div key={idx} className="mb-1 text-sm">
-                        {msg}
+                        <p>
+                            <strong>
+                                {msg.sender === currentUser?.id
+                                    ? 'Você'
+                                    : users?.find(user => user.id === msg.sender)?.name || 'Desconhecido'}
+                            </strong>: {msg.content}
+                        </p>
+
+
+                        <p>{msg.timestamp}</p>
                     </div>
                 ))}
                 <div ref={messagesEndRef}></div>

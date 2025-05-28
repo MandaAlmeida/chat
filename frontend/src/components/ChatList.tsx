@@ -1,30 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api';
+import type { ChatProps, User } from '../types/types';
 
-interface Chat {
-    id: string;
-    name: string; // nome do grupo ou do outro participante
-    // pode ter outras propriedades, adapte ao seu schema
-}
 
 interface Props {
-    onSelectChat: (chat: Chat) => void;
+    onSelectChat: (chat: ChatProps) => void;
+    currentUser: User | null
 }
 
-export default function ChatList({ onSelectChat }: Props) {
-    const [chats, setChats] = useState<Chat[]>([]);
-    const [loading, setLoading] = useState(true);
-
+export default function ChatList({ onSelectChat, currentUser }: Props) {
+    const [chats, setChats] = useState<ChatProps[]>([]);
     useEffect(() => {
-        api.get('/chat')
-            .then(res => {
-                setChats(res.data);
-                setLoading(false);
-            })
-            .catch(console.error);
-    }, []);
+        const fetchChats = async () => {
+            try {
+                const response = await api.get('/chat/');
 
-    if (loading) return <p>Carregando chats...</p>;
+                setChats(response.data);
+            } catch (error) {
+                console.error('Erro ao buscar chats:', error);
+            }
+        };
+
+        fetchChats();
+    }, []);
 
     return (
         <div className="p-2 overflow-y-auto h-screen">
@@ -37,7 +35,7 @@ export default function ChatList({ onSelectChat }: Props) {
                         className="cursor-pointer p-2 hover:bg-gray-200 rounded"
                         onClick={() => onSelectChat(chat)}
                     >
-                        {chat.name}
+                        {chat.type !== "GROUP" ? chat.participants.find(participant => participant.id !== currentUser?.id)?.name || chat.name : chat.name}
                     </li>
                 ))}
             </ul>

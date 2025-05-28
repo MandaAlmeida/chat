@@ -13,9 +13,13 @@ enum Status {
   EDITED
 }
 
+enum TypeChat {
+  GROUP
+  INDIVIDUAL
+}
+
 model User {
   id        String   @id @default(uuid())
-  userName  String?  @unique
   name      String
   email     String   @unique
   password  String?
@@ -39,6 +43,7 @@ model Chat {
   active     Boolean
   createId   String
   deletedFor String[] @default([])
+  type       TypeChat @default(INDIVIDUAL)
 
   create       User      @relation("UserCreatedChats", fields: [createId], references: [id])
   participants User[]    @relation("UserParticipantChats")

@@ -1,33 +1,19 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { useState } from "react";
 import api from "../api";
+import type { ChatProps, User } from "../types/types";
 
-
-export interface User {
-    id: string;
-    userName: string;
-}
-
-interface Chat {
-    id: string;
-    name: string;
-}
 
 interface Props {
-    onChatCreated: (chat: Chat) => void;
+    onChatCreated: (chat: ChatProps) => void;
+    users: User[];
+    currentUser: User | null;
 }
 
-export default function CreateChat({ onChatCreated }: Props) {
-    const [users, setUsers] = useState<User[]>([]);
+export default function CreateChat({ onChatCreated, users, currentUser }: Props) {
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [groupName, setGroupName] = useState("");
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        axios.get<User[]>("http://localhost:3333/user").then((res) => {
-            setUsers(res.data);
-        });
-    }, []);
 
     const toggleUserSelection = (id: string) => {
         setSelectedUsers((prev) =>
@@ -42,19 +28,16 @@ export default function CreateChat({ onChatCreated }: Props) {
                 return;
             }
 
-            if (selectedUsers.length === 1) {
-                const res = await api.post<Chat>("http://localhost:3333/chat/get-or-create", {
-                    participantId: selectedUsers[0],
+            if (selectedUsers.length === 1 && groupName.trim()) {
+                const res = await api.post<ChatProps>("/chat/create-group", {
+                    name: groupName,
+                    participants: selectedUsers,
                 });
                 onChatCreated(res.data);
             } else {
-                if (!groupName.trim()) {
-                    setError("Digite o nome do grupo.");
-                    return;
-                }
-                const res = await api.post<Chat>("http://localhost:3333/chat/create-group", {
-                    name: groupName,
-                    participantIds: selectedUsers,
+                const res = await api.post<ChatProps>("/chat/get-or-create", {
+                    name: currentUser?.name,
+                    participants: selectedUsers[0]
                 });
                 onChatCreated(res.data);
             }
@@ -93,7 +76,7 @@ export default function CreateChat({ onChatCreated }: Props) {
                             onChange={() => toggleUserSelection(user.id)}
                             className="mr-2"
                         />
-                        {user.userName}
+                        {user.name}
                     </label>
                 ))}
             </div>
