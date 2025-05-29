@@ -10,20 +10,15 @@ import {
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-    cors: {
-        origin: 'http://localhost:5173',
-        methods: ['GET', 'POST']
-    },
+    cors: { origin: 'http://localhost:5173' },
     path: '/socket.io',
     serveClient: false,
     transports: ['websocket', 'polling'],
     allowEIO3: true,
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
 })
 export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    constructor() { }
-
     @WebSocketServer()
     server: Server;
 
@@ -35,45 +30,25 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
         console.log('Cliente desconectado:', client.id);
     }
 
+    // Envia dados de chat para um usuário específico
     sendChat(userId: string, chat: any) {
-        this.server.to(userId).emit('chat', { ...chat, timestamp: new Date().toISOString() });
+        this.server.to(userId).emit('chat', chat);
     }
 
+    // Envia mensagem para um usuário específico, adicionando timestamp
+    sendMessage(userId: string, message: any) {
+        this.server.to(userId).emit('message', { ...message, timestamp: new Date().toISOString() });
+    }
+
+    // Adiciona o cliente na sala do usuário
     joinUserRoom(client: Socket, userId: string) {
         client.join(userId);
     }
 
+    // Quando recebe um evento 'newMessage', associa o userId ao socket e o adiciona na sala
     @SubscribeMessage('newMessage')
     handleNewMessage(@MessageBody() userId: string, @ConnectedSocket() client: Socket) {
         client.data.userId = userId;
         this.joinUserRoom(client, userId);
     }
-
-
-    @SubscribeMessage('sendMessage')
-    async handleSendMessage(
-        @MessageBody() data: { to: string[]; message: string; chatId: string },
-        @ConnectedSocket() client: Socket
-    ) {
-        const senderId = client.data?.userId;
-
-        if (!senderId) {
-            console.warn('Usuário não autenticado no socket');
-            return;
-        }
-
-        const chat = {
-            sender: senderId,
-            content: data.message,
-            chatId: data.chatId
-        };
-
-        // Cria um Set para eliminar duplicatas
-        const recipients = new Set([...data.to, senderId]);
-
-        for (const userId of recipients) {
-            this.sendChat(userId, chat);
-        }
-    }
-
 }

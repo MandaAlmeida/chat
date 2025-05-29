@@ -11,7 +11,7 @@ import { UserService } from 'src/service/user.service';
 export class UserController {
   constructor(private readonly userService: UserService, private config: EnvService) { }
 
-  @Post()
+  @Post('/register')
   create(@Body() createUserDto: CreateUserDTO) {
     return this.userService.create(createUserDto);
   }

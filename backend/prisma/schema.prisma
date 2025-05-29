@@ -8,9 +8,15 @@ datasource db {
 }
 
 enum Status {
+  EDITED
+  DELETE
+  USER
+}
+
+enum SeenStatus {
   SENT
   SEEN
-  EDITED
+  USER
 }
 
 enum TypeChat {
@@ -28,41 +34,58 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Content Content[]
-  Chat    Chat[]    @relation("UserCreatedChats")
-  ChatAdd Chat[]    @relation("UserParticipantChats")
+  Content     Content[]
+  Chat        Chat[]        @relation("UserCreatedChats")
+  ChatAdd     Chat[]        @relation("UserParticipantChats")
+  DeletedChat DeletedChat[]
 
   @@map("users")
 }
 
 model Chat {
-  id         String   @id @default(uuid())
-  name       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  active     Boolean
-  createId   String
-  deletedFor String[] @default([])
-  type       TypeChat @default(INDIVIDUAL)
+  id             String        @id @default(uuid())
+  name           String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  active         Boolean
+  createId       String
+  type           TypeChat      @default(INDIVIDUAL)
+  participantIds String[]      @default([])
+  Content        Content[]
+  DeletedChat    DeletedChat[]
 
-  create       User      @relation("UserCreatedChats", fields: [createId], references: [id])
-  participants User[]    @relation("UserParticipantChats")
-  Content      Content[]
+  create       User   @relation("UserCreatedChats", fields: [createId], references: [id])
+  participants User[] @relation("UserParticipantChats")
 }
 
 model Content {
-  id        String   @id @default(uuid())
-  message   String
-  status    Status   @default(SENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  authorId  String
-  chatId    String
-  type      String   @default("text")
+  id         String     @id @default(uuid())
+  message    String
+  status     Status?
+  seenStatus SeenStatus @default(SENT)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  authorId   String
+  chatId     String
+  type       String     @default("text")
 
   author User @relation(fields: [authorId], references: [id])
   chat   Chat @relation(fields: [chatId], references: [id])
 
   @@index([chatId])
   @@index([authorId])
+}
+
+model DeletedChat {
+  id        String   @id @default(uuid())
+  userId    String
+  chatId    String
+  deletedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  active    Boolean
+
+  user User @relation(fields: [userId], references: [id])
+  chat Chat @relation(fields: [chatId], references: [id])
+
+  @@unique([userId, chatId])
 }

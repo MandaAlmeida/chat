@@ -1,7 +1,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ChatProps, Message, User } from '../types/types';
-import { PencilIcon, TrashIcon } from '@phosphor-icons/react';
+import { CheckIcon, ChecksIcon, PencilIcon, TrashIcon } from '@phosphor-icons/react';
 import api from '../api';
 
 interface Props {
@@ -59,8 +59,6 @@ export default function ChatPropsWindow({
             console.error('Erro ao editar mensagem:', error);
         }
     };
-
-
     return (
         <div className="w-full h-screen p-4">
             <h3 className="text-lg font-semibold mb-2">
@@ -71,9 +69,24 @@ export default function ChatPropsWindow({
                     : selectedChat.name}
             </h3>
 
-            <div className="border border-gray-300 min-h-72 overflow-y-auto p-2 rounded bg-gray-100">
+            <div className="border border-gray-300 min-h-72 max-h-[85%] overflow-y-auto p-2 rounded bg-gray-100">
                 {messages && messages.map((msg, idx) => {
                     const isOwnMessage = msg.sender === currentUser?.id;
+
+                    if (msg.status === 'USER') {
+                        return <div key={idx} className='flex justify-center mb-3'>
+                            <p className='bg-gray-300 rounded-2xl p-2 border-none w-fit'>
+                                <strong>
+                                    {msg.sender === currentUser?.id
+                                        ? 'Você'
+                                        : users?.find(u => u.id === msg.sender)?.name
+                                    }
+                                </strong> {msg.content}
+                            </p>
+
+                        </div>
+                    }
+
                     return (
                         <div key={idx} className={`mb-1 text-sm flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
                             <div className={`p-2 rounded ${isOwnMessage ? 'bg-blue-200 text-right' : 'bg-gray-300 text-left'}`}>
@@ -83,7 +96,7 @@ export default function ChatPropsWindow({
                                             {isOwnMessage ? 'Você' : users?.find(user => user.id === msg.sender)?.name || 'Desconhecido'}
                                         </strong>: {msg.content}
                                     </p>
-                                    {isOwnMessage && (
+                                    {isOwnMessage && msg.status !== "DELETE" && (
                                         <div className="flex gap-1">
                                             <button
                                                 className="text-red-500 hover:text-red-700 cursor-pointer"
@@ -104,20 +117,25 @@ export default function ChatPropsWindow({
                                         </div>
                                     )}
                                 </div>
-
-                                <p className="text-xs text-gray-600"> {new Date(msg.timestamp).toLocaleString('pt-BR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: false
-                                })}</p>
-
-
+                                <div className='flex items-center text-xs text-gray-600 gap-2 justify-end'>
+                                    {msg.status === "EDITED" && <p>Editada</p>}
+                                    <p className="text-xs text-gray-600">
+                                        {new Date(msg.timestamp).toLocaleString('pt-BR', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false
+                                        })}
+                                    </p>
+                                    {msg.seenStatus === "SEEN" ? <ChecksIcon size={16} /> : <CheckIcon size={16} />}
+                                </div>
                             </div>
                         </div>
                     );
                 })}
+
+
                 <div ref={messagesEndRef}></div>
             </div>
 

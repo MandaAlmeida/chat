@@ -20,21 +20,8 @@ export class CreateUserDTO {
     @IsString()
     birth: string;
 
-    @IsStrongPassword(
-        {
-            minLength: 8,
-            minLowercase: 1,
-            minUppercase: 1,
-            minNumbers: 1,
-            minSymbols: 1,
-        },
-        {
-            message:
-                "A senha precisa ter no mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.",
-        }
-    )
+    @IsString()
     password: string;
-
 
     @IsString()
     passwordConfirmation: string;

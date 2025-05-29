@@ -15,8 +15,8 @@ export class MessageController {
     }
 
     @Get(":id")
-    async findMessage(@Param('id') chatId: string) {
-        return this.messageService.findMessage(chatId);
+    async findMessage(@CurrentUser() user: { sub: string }, @Param('id') chatId: string) {
+        return this.messageService.findMessage(user, chatId);
     }
 
     @Put(":id")

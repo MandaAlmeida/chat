@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 import type { User } from "../types/types";
+import { socket } from "../pages/chat";
 
 
 interface Props {
@@ -8,12 +11,11 @@ interface Props {
     setGroupName: React.Dispatch<React.SetStateAction<string>>;
     selectedUsers: string[];
     setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
-    createChat: () => Promise<void>
+    createChat: () => Promise<void>;
 }
 
 export default function CreateChat({ users, error, groupName, setGroupName, selectedUsers, setSelectedUsers, createChat }: Props) {
-
-
+    const navigate = useNavigate();
 
     const toggleUserSelection = (id: string) => {
         setSelectedUsers((prev) =>
@@ -21,11 +23,23 @@ export default function CreateChat({ users, error, groupName, setGroupName, sele
         );
     };
 
-
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        socket.disconnect();
+        navigate('/');
+    };
 
     return (
         <div className="p-4 border-b border-gray-300">
-            <h2 className="font-bold mb-2">Criar Chat / Grupo</h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold mb-2">Criar Chat / Grupo</h2>
+                <button
+                    onClick={handleLogout}
+                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                >
+                    Sair
+                </button>
+            </div>
 
             {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 

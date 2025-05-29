@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import api from '../api';
 import CreateChat from '../components/ChatCreate';
@@ -6,7 +6,7 @@ import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
 import type { ChatProps, Message, User } from '../types/types';
 
-const socket = io('http://localhost:3333', {
+export const socket = io('http://localhost:3333', {
     path: '/socket.io',
     transports: ['websocket']
 });
@@ -21,55 +21,6 @@ function Chat() {
     const [groupName, setGroupName] = useState("");
     const [error, setError] = useState("");
     const [chats, setChats] = useState<ChatProps[]>([]);
-
-    useEffect(() => {
-        fetchChats();
-    }, []);
-
-    useEffect(() => {
-        fetchUser();
-    }, []);
-
-    useEffect(() => {
-        if (currentUser) {
-            fetchUsers();
-            socket.emit('newMessage', currentUser.id);
-        }
-    }, [currentUser]);
-
-    useEffect(() => {
-        const handleChat = (data: Message & { chatId: string; status?: string; timestamp?: string }) => {
-            if (selectedChat && data.chatId === selectedChat.id) {
-                setMessages(prev => {
-                    const exists = prev.some(m =>
-                        m.sender === data.sender &&
-                        m.content === data.content &&
-                        m.timestamp === data.timestamp
-                    );
-                    if (exists) return prev;
-                    return [...prev, { ...data, status: 'SENT' }];
-                });
-
-                // Marcar como lida se for mensagem de outro usuário
-                if (data.sender !== currentUser?.id) {
-                    markMessagesAsRead([data.id]);
-                }
-            } else {
-                console.log('Mensagem nova em outro chat:', data.chatId);
-            }
-        };
-
-        socket.on('chat', handleChat);
-        return () => {
-            socket.off('chat', handleChat);
-        };
-    }, [selectedChat, currentUser]);
-
-    useEffect(() => {
-        if (selectedChat) {
-            fetchMessages(selectedChat.id);
-        }
-    }, [selectedChat]);
 
     const fetchUser = async () => {
         const res = await api.get('/user/me');
@@ -88,12 +39,17 @@ function Chat() {
             sender: msg.authorId,
             content: msg.message,
             timestamp: msg.createdAt,
-            status: msg.status
+            status: msg.status,
+            seenStatus: msg.seenStatus,
+            type: msg.type
         }));
         setMessages(newMsgs);
 
         const unreadIds = newMsgs
-            .filter(message => message.status !== "SENT" && message.sender !== currentUser?.id)
+            .filter(message =>
+                message.seenStatus === "SENT" &&
+                message.sender !== currentUser?.id
+            )
             .map(message => message.id);
 
         if (unreadIds.length > 0) {
@@ -118,6 +74,13 @@ function Chat() {
         };
 
         await api.post('/message/send-message', payload);
+        const unreadIds = messages
+            .filter(message =>
+                message.seenStatus === "SENT" &&
+                message.sender !== currentUser?.id
+            )
+            .map(message => message.id);
+        markMessagesAsRead(unreadIds)
         setMessage('');
     };
 
@@ -128,19 +91,18 @@ function Chat() {
                 return;
             }
 
-            if (selectedUsers.length === 1 && groupName.trim()) {
-                const res = await api.post<ChatProps>("/chat/create-group", {
+            if (selectedUsers.length > 1 && groupName) {
+                await api.post<ChatProps>("/chat/create-group", {
                     name: groupName,
                     participants: selectedUsers,
                 });
-                setSelectedChat(res.data);
                 fetchChats();
             } else {
-                const res = await api.post<ChatProps>("/chat/get-or-create", {
+                await api.post<ChatProps>("/chat/get-or-create", {
                     name: currentUser?.name,
                     participant: selectedUsers[0]
                 });
-                setSelectedChat(res.data);
+                fetchChats();
             }
 
             setSelectedUsers([]);
@@ -157,9 +119,21 @@ function Chat() {
 
         try {
             await api.delete(`/message/${id}`);
-            setMessages(prevMessages => prevMessages.filter(msg => msg.id !== id));
         } catch (error) {
             console.error('Erro ao deletar a mensagem:', error);
+        }
+    };
+
+    const deleteChat = async (id: string) => {
+        const confirmed = window.confirm('Tem certeza que deseja deletar este chat?');
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/chat/delete/${id}`);
+            fetchChats();
+            setSelectedChat(null)
+        } catch (error) {
+            console.error('Erro ao deletar o chat:', error);
         }
     };
 
@@ -169,7 +143,7 @@ function Chat() {
             await api.patch(`/message/view-message`, { ids });
             setMessages(prev =>
                 prev.map(msg =>
-                    ids.includes(msg.id) ? { ...msg, status: "SENT" } : msg
+                    ids.includes(msg.id) ? { ...msg, status: "SEEN" } : msg
                 )
             );
             console.log('Mensagens marcadas como lidas.');
@@ -181,34 +155,108 @@ function Chat() {
     const fetchChats = async () => {
         try {
             const response = await api.get('/chat');
-
             setChats(response.data);
         } catch (error) {
             console.error('Erro ao buscar chats:', error);
         }
     };
 
+    const handleMessage = useCallback((data: Partial<Message> & { chatId: string }) => {
+        console.log('Socket recebido:', data);
+
+        if (selectedChat && data.chatId === selectedChat.id) {
+            setMessages(prev => {
+                const exists = prev.some(m => m.id === data.id);
+                if (exists) {
+                    return prev.map(m => m.id === data.id ? { ...m, ...data } : m);
+                }
+                return [...prev, data as Message];
+            });
+        } else {
+            console.log('Mensagem nova ou atualizada em outro chat:', data.chatId);
+        }
+    }, [selectedChat]);
+
+    const handleChatUpdate = useCallback((data: ChatProps) => {
+        console.log('Atualização de chat recebida:', data);
+
+        setChats(prev => {
+            const exists = prev.some(chat => chat.id === data.id);
+            if (exists) {
+                return prev.map(chat => chat.id === data.id ? { ...chat, ...data } : chat);
+            }
+            return [...prev, data];
+        });
+    }, []);
+
+
+    useEffect(() => {
+        fetchChats();
+    }, []);
+
+    useEffect(() => {
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchUsers();
+            socket.emit('newMessage', currentUser.id);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        socket.on('message', handleMessage);
+        socket.on('chat', handleChatUpdate);
+
+        return () => {
+            socket.off('message', handleMessage);
+            socket.off('chat', handleChatUpdate);
+        };
+
+    }, [handleMessage, handleChatUpdate]);
+
+    useEffect(() => {
+        if (selectedChat) {
+            fetchMessages(selectedChat.id);
+        }
+    }, [selectedChat]);
+
     return (
         <div className="flex h-screen">
             <div className="w-80 border-r border-gray-300 flex flex-col">
-                <CreateChat users={users} createChat={createChat} error={error} groupName={groupName} selectedUsers={selectedUsers} setGroupName={setGroupName} setSelectedUsers={setSelectedUsers} />
-                <ChatList onSelectChat={setSelectedChat} currentUser={currentUser} chats={chats} />
-            </div>
-
-            {selectedChat && (
-                <ChatWindow
-                    setMessages={setMessages}
-                    selectedChat={selectedChat}
-                    messages={messages}
-                    message={message}
-                    setMessage={setMessage}
-                    handleSendMessage={handleSendMessage}
+                <CreateChat
                     users={users}
-                    currentUser={currentUser}
-                    deleteMessage={deleteMessage}
+                    createChat={createChat}
+                    error={error}
+                    groupName={groupName}
+                    selectedUsers={selectedUsers}
+                    setGroupName={setGroupName}
+                    setSelectedUsers={setSelectedUsers}
                 />
-            )}
-        </div>
+                <ChatList
+                    onSelectChat={setSelectedChat}
+                    currentUser={currentUser}
+                    chats={chats}
+                    onDeleteChat={deleteChat}
+                />
+            </div>
+            {
+                selectedChat && (
+                    <ChatWindow
+                        setMessages={setMessages}
+                        selectedChat={selectedChat}
+                        messages={messages}
+                        message={message}
+                        setMessage={setMessage}
+                        handleSendMessage={handleSendMessage}
+                        users={users}
+                        currentUser={currentUser}
+                        deleteMessage={deleteMessage}
+                    />
+                )
+            }
+        </div >
     );
 }
 

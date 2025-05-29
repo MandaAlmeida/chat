@@ -14,7 +14,7 @@ export default function Login() {
 
         if (token) {
             localStorage.setItem('token', token);
-            window.history.replaceState({}, document.title, "/login");
+            window.history.replaceState({}, document.title, "/");
             navigate('/chat');
         }
     }, [location.search, navigate]);
@@ -65,7 +65,9 @@ export default function Login() {
                 <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
                     Entrar
                 </button>
-
+                <button type="button" onClick={() => navigate('/register')} className="w-full bg-blue-300 text-white p-2 rounded hover:bg-blue-600">
+                    Criar conta
+                </button>
                 <button type="button" onClick={handleGoogleLogin} className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600">
                     Entrar com Google
                 </button>

@@ -10,6 +10,8 @@ export interface Message {
     content: string;
     timestamp: string;
     status: string;
+    seenStatus: string
+    type: string
 }
 
 
@@ -19,4 +21,5 @@ export interface ChatProps {
     name: string;
     participants: User[];
     type: string;
+    deletedFor: string[]
 }
