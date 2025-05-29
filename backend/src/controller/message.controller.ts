@@ -20,13 +20,13 @@ export class MessageController {
     }
 
     @Put(":id")
-    async updateMessage(@Param('id') id: string, @Body() message: UpdateMessageDTO) {
+    async updateMessage(@Param('id') id: string, @Body("message") message: string) {
         return this.messageService.updateMessage(id, message);
     }
 
-    @Patch(":id")
-    async viewMessage(@Param('id') id: string) {
-        return this.messageService.viewMessage(id);
+    @Patch("view-message")
+    async viewMessage(@Body('ids') ids: string[]) {
+        return this.messageService.viewMessage(ids);
     }
 
     @Delete(":id")

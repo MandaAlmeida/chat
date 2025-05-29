@@ -1,18 +1,18 @@
-import { useState } from "react";
-import api from "../api";
-import type { ChatProps, User } from "../types/types";
+import type { User } from "../types/types";
 
 
 interface Props {
-    onChatCreated: (chat: ChatProps) => void;
     users: User[];
-    currentUser: User | null;
+    error: string;
+    groupName: string;
+    setGroupName: React.Dispatch<React.SetStateAction<string>>;
+    selectedUsers: string[];
+    setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
+    createChat: () => Promise<void>
 }
 
-export default function CreateChat({ onChatCreated, users, currentUser }: Props) {
-    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-    const [groupName, setGroupName] = useState("");
-    const [error, setError] = useState("");
+export default function CreateChat({ users, error, groupName, setGroupName, selectedUsers, setSelectedUsers, createChat }: Props) {
+
 
 
     const toggleUserSelection = (id: string) => {
@@ -21,35 +21,7 @@ export default function CreateChat({ onChatCreated, users, currentUser }: Props)
         );
     };
 
-    const createChat = async () => {
-        try {
-            if (selectedUsers.length === 0) {
-                setError("Selecione pelo menos um usuário.");
-                return;
-            }
 
-            if (selectedUsers.length === 1 && groupName.trim()) {
-                const res = await api.post<ChatProps>("/chat/create-group", {
-                    name: groupName,
-                    participants: selectedUsers,
-                });
-                onChatCreated(res.data);
-            } else {
-                const res = await api.post<ChatProps>("/chat/get-or-create", {
-                    name: currentUser?.name,
-                    participants: selectedUsers[0]
-                });
-                onChatCreated(res.data);
-            }
-
-            // Resetar seleção
-            setSelectedUsers([]);
-            setGroupName("");
-            setError("");
-        } catch (err) {
-            setError("Erro ao criar chat.");
-        }
-    };
 
     return (
         <div className="p-4 border-b border-gray-300">

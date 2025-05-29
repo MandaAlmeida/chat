@@ -10,7 +10,7 @@ async function bootstrap() {
   const envService = app.get(EnvService)
   app.enableCors({
     origin: 'http://localhost:5173',  // ou '*' se quiser liberar geral (não recomendado para produção)
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
   const port = envService.get("PORT")

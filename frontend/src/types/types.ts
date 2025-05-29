@@ -5,15 +5,18 @@ export interface User {
 }
 
 export interface Message {
+    id: string;
     sender: string;
     content: string;
     timestamp: string;
+    status: string;
 }
 
 
 export interface ChatProps {
     id: string;
+    createId: string;
     name: string;
     participants: User[];
-    type: string
+    type: string;
 }

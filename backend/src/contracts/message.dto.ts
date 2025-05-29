@@ -14,8 +14,5 @@ export class CreateMessageDTO {
 
 export class UpdateMessageDTO {
     @IsString()
-    id: string
-
-    @IsString()
     message: string
 }

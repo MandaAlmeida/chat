@@ -19,6 +19,8 @@ export class ChatService {
             }
         });
 
+        if (chats?.type === "GROUP") return;
+
         return chats
     }
 

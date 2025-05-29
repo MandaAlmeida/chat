@@ -17,6 +17,14 @@ function Chat() {
     const [message, setMessage] = useState<string>('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [selectedChat, setSelectedChat] = useState<ChatProps | null>(null);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+    const [groupName, setGroupName] = useState("");
+    const [error, setError] = useState("");
+    const [chats, setChats] = useState<ChatProps[]>([]);
+
+    useEffect(() => {
+        fetchChats();
+    }, []);
 
     useEffect(() => {
         fetchUser();
@@ -30,13 +38,32 @@ function Chat() {
     }, [currentUser]);
 
     useEffect(() => {
-        socket.on('chat', (data) => {
-            setMessages(prev => [...prev, data]);
-        });
-        return () => {
-            socket.off('chat');
+        const handleChat = (data: Message & { chatId: string; status?: string; timestamp?: string }) => {
+            if (selectedChat && data.chatId === selectedChat.id) {
+                setMessages(prev => {
+                    const exists = prev.some(m =>
+                        m.sender === data.sender &&
+                        m.content === data.content &&
+                        m.timestamp === data.timestamp
+                    );
+                    if (exists) return prev;
+                    return [...prev, { ...data, status: 'SENT' }];
+                });
+
+                // Marcar como lida se for mensagem de outro usuário
+                if (data.sender !== currentUser?.id) {
+                    markMessagesAsRead([data.id]);
+                }
+            } else {
+                console.log('Mensagem nova em outro chat:', data.chatId);
+            }
         };
-    }, []);
+
+        socket.on('chat', handleChat);
+        return () => {
+            socket.off('chat', handleChat);
+        };
+    }, [selectedChat, currentUser]);
 
     useEffect(() => {
         if (selectedChat) {
@@ -46,8 +73,7 @@ function Chat() {
 
     const fetchUser = async () => {
         const res = await api.get('/user/me');
-        const data = res.data;
-        setCurrentUser(data);
+        setCurrentUser(res.data);
     };
 
     const fetchUsers = async () => {
@@ -57,48 +83,121 @@ function Chat() {
 
     const fetchMessages = async (chatId: string) => {
         const res = await api.get(`/message/${chatId}`);
-
-        const newMsgs = res.data.map((msg: any) => ({
+        const newMsgs: Message[] = res.data.map((msg: any) => ({
+            id: msg.id,
             sender: msg.authorId,
             content: msg.message,
-            timestamp: msg.createdAt
+            timestamp: msg.createdAt,
+            status: msg.status
         }));
-
         setMessages(newMsgs);
+
+        const unreadIds = newMsgs
+            .filter(message => message.status !== "SENT" && message.sender !== currentUser?.id)
+            .map(message => message.id);
+
+        if (unreadIds.length > 0) {
+            await markMessagesAsRead(unreadIds);
+        }
     };
 
     const handleSendMessage = async () => {
         if (!selectedChat || !currentUser) return;
 
-        const recipients = selectedChat.participants
-            .filter(p => p.id !== currentUser.id)
-            .map(p => p.id);
+        const recipients = [
+            ...selectedChat.participants.map(p => p.id),
+            selectedChat.createId
+        ];
+
+        const uniqueRecipients = Array.from(new Set(recipients));
 
         const payload = {
-            to: recipients,
+            recipients: uniqueRecipients,
             message,
             chatId: selectedChat.id,
         };
 
         await api.post('/message/send-message', payload);
-        socket.emit('sendMessage', payload);
         setMessage('');
-
     };
 
-    const handleChatCreated = (chat: ChatProps) => {
-        setSelectedChat(chat);
+    const createChat = async () => {
+        try {
+            if (selectedUsers.length === 0) {
+                setError("Selecione pelo menos um usuário.");
+                return;
+            }
+
+            if (selectedUsers.length === 1 && groupName.trim()) {
+                const res = await api.post<ChatProps>("/chat/create-group", {
+                    name: groupName,
+                    participants: selectedUsers,
+                });
+                setSelectedChat(res.data);
+                fetchChats();
+            } else {
+                const res = await api.post<ChatProps>("/chat/get-or-create", {
+                    name: currentUser?.name,
+                    participant: selectedUsers[0]
+                });
+                setSelectedChat(res.data);
+            }
+
+            setSelectedUsers([]);
+            setGroupName("");
+            setError("");
+        } catch (err) {
+            setError("Erro ao criar chat.");
+        }
+    };
+
+    const deleteMessage = async (id: string) => {
+        const confirmed = window.confirm('Tem certeza que deseja deletar esta mensagem?');
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/message/${id}`);
+            setMessages(prevMessages => prevMessages.filter(msg => msg.id !== id));
+        } catch (error) {
+            console.error('Erro ao deletar a mensagem:', error);
+        }
+    };
+
+    const markMessagesAsRead = async (ids: string[]) => {
+        if (!ids.length) return;
+        try {
+            await api.patch(`/message/view-message`, { ids });
+            setMessages(prev =>
+                prev.map(msg =>
+                    ids.includes(msg.id) ? { ...msg, status: "SENT" } : msg
+                )
+            );
+            console.log('Mensagens marcadas como lidas.');
+        } catch (error) {
+            console.error('Erro ao marcar mensagens como lidas:', error);
+        }
+    };
+
+    const fetchChats = async () => {
+        try {
+            const response = await api.get('/chat');
+
+            setChats(response.data);
+        } catch (error) {
+            console.error('Erro ao buscar chats:', error);
+        }
     };
 
     return (
         <div className="flex h-screen">
             <div className="w-80 border-r border-gray-300 flex flex-col">
-                <CreateChat users={users} onChatCreated={handleChatCreated} currentUser={currentUser} />
-                <ChatList onSelectChat={setSelectedChat} currentUser={currentUser} />
+                <CreateChat users={users} createChat={createChat} error={error} groupName={groupName} selectedUsers={selectedUsers} setGroupName={setGroupName} setSelectedUsers={setSelectedUsers} />
+                <ChatList onSelectChat={setSelectedChat} currentUser={currentUser} chats={chats} />
             </div>
 
             {selectedChat && (
                 <ChatWindow
+                    setMessages={setMessages}
                     selectedChat={selectedChat}
                     messages={messages}
                     message={message}
@@ -106,6 +205,7 @@ function Chat() {
                     handleSendMessage={handleSendMessage}
                     users={users}
                     currentUser={currentUser}
+                    deleteMessage={deleteMessage}
                 />
             )}
         </div>

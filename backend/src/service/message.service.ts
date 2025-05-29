@@ -2,14 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMessageDTO, UpdateMessageDTO } from 'src/contracts/message.dto';
 import { PrismaService } from './prisma.service';
 import { Status } from '@prisma/client';
+import { MessageGateway } from 'src/gateway/message.gateway';
 
 @Injectable()
 export class MessageService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly messageGateway: MessageGateway
+    ) { }
 
     async sendMessage(user: { sub: string }, newMessage: CreateMessageDTO) {
-        const { message, chatId } = newMessage;
-        return await this.prisma.content.create({
+        const { message, chatId, recipients } = newMessage;
+
+        const createdMessage = await this.prisma.content.create({
             data: {
                 message,
                 authorId: user.sub,
@@ -17,6 +22,24 @@ export class MessageService {
                 status: Status.SENT
             }
         });
+
+        // Prepara o payload a ser enviado
+        const chatPayload = {
+            id: createdMessage.id,
+            sender: user.sub,
+            content: message,
+            chatId: chatId,
+            timestamp: createdMessage.createdAt,
+            status: createdMessage.status
+        };
+
+        // Cria um Set para eliminar duplicatas
+        const newRecipients = new Set([...recipients, user.sub]);
+
+        for (const userId of newRecipients) {
+            this.messageGateway.sendChat(userId, chatPayload);
+        }
+        return createdMessage;
     }
 
     async findMessage(chatId: string) {
@@ -34,25 +57,26 @@ export class MessageService {
         return messagens;
     }
 
-    async updateMessage(id: string, message: UpdateMessageDTO) {
+    async updateMessage(id: string, message: string) {
         await this.checkMessageExist(id)
 
         return await this.prisma.content.update({
             where: { id },
             data: {
-                message: message.message,
+                message: message,
                 status: Status.EDITED
             }
         });
     }
 
-    async viewMessage(id: string) {
-        await this.checkMessageExist(id)
+    async viewMessage(ids: string[]) {
+        console.log(ids)
+        await this.checkMessagesExist(ids);
 
-        return await this.prisma.content.update({
-            where: { id },
+        return await this.prisma.content.updateMany({
+            where: { id: { in: ids } },
             data: {
-                status: Status.EDITED
+                status: Status.SEEN
             }
         });
     }
@@ -72,4 +96,16 @@ export class MessageService {
 
         if (!existMessage) throw new NotFoundException("Messagem não encontrada")
     }
+
+
+    private async checkMessagesExist(ids: string[]) {
+        const count = await this.prisma.content.count({
+            where: { id: { in: ids } }
+        });
+
+        if (count !== ids.length) {
+            throw new NotFoundException('Uma ou mais mensagens não encontradas.');
+        }
+    }
+
 }

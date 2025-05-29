@@ -68,14 +68,12 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
             chatId: data.chatId
         };
 
-        // Envia para todos os participantes, incluindo o remetente se quiser
-        for (const userId of data.to) {
+        // Cria um Set para eliminar duplicatas
+        const recipients = new Set([...data.to, senderId]);
+
+        for (const userId of recipients) {
             this.sendChat(userId, chat);
         }
-
-        // Opcional: enviar para o remetente também
-        this.sendChat(senderId, chat);
     }
-
 
 }

@@ -1,28 +1,14 @@
-import { useEffect, useState } from 'react';
-import api from '../api';
 import type { ChatProps, User } from '../types/types';
 
 
 interface Props {
     onSelectChat: (chat: ChatProps) => void;
     currentUser: User | null
+    chats: ChatProps[]
 }
 
-export default function ChatList({ onSelectChat, currentUser }: Props) {
-    const [chats, setChats] = useState<ChatProps[]>([]);
-    useEffect(() => {
-        const fetchChats = async () => {
-            try {
-                const response = await api.get('/chat/');
+export default function ChatList({ onSelectChat, currentUser, chats }: Props) {
 
-                setChats(response.data);
-            } catch (error) {
-                console.error('Erro ao buscar chats:', error);
-            }
-        };
-
-        fetchChats();
-    }, []);
 
     return (
         <div className="p-2 overflow-y-auto h-screen">
