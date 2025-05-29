@@ -9,7 +9,7 @@ async function bootstrap() {
   await prismaService.enableShutdownHooks(app);
   const envService = app.get(EnvService)
   app.enableCors({
-    origin: 'http://localhost:5173',  // ou '*' se quiser liberar geral (não recomendado para produção)
+    origin: '*',  // ou '*' se quiser liberar geral (não recomendado para produção)
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
