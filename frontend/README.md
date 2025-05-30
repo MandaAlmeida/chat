@@ -1,54 +1,58 @@
-# React + TypeScript + Vite
+# Chat Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend do aplicativo de chat desenvolvido por MandaAlmeida.  
+Esta aplicação é responsável pela interface do usuário, permitindo a comunicação em tempo real através de mensagens.
 
-Currently, two official plugins are available:
+## Tecnologias Utilizadas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React
+- TypeScript (se estiver usando)
+- CSS / Styled Components / Tailwind CSS (conforme o que estiver no projeto)
+- WebSocket / Socket.io (se houver comunicação em tempo real)
+- Outras libs importantes (ex: axios, react-router, etc.)
 
-## Expanding the ESLint configuration
+## Instalação
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Clone este repositório:
+   ```bash
+   git clone https://github.com/MandaAlmeida/chat.git
+   cd chat/frontend
+   ```
+2. Instale as dependências:
+   ```bash
+   npm install
+   # ou
+   yarn install
+   ```
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Uso
+
+Para iniciar a aplicação em modo de desenvolvimento:
+
+```bash
+npm run dev
+# ou
+yarn run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+A aplicação será executada em `http://localhost:5173` (por padrão).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Funcionalidades
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+- Enviar e receber mensagens em tempo real
+- Listagem de usuários
+- Interface amigável e responsiva
+- Suporte a múltiplas salas de chat
+- Criação de chats com múltiplos usuários ou chats individuais.
+
+### Link da aplicação online
+
+[Chat - Frontend](https://robust-vision-production.up.railway.app/chat)
+
+## Contribuição
+
+Sinta-se à vontade para abrir issues ou pull requests para melhorar este projeto.
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](../LICENSE) para mais detalhes.

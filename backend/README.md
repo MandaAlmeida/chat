@@ -1,98 +1,340 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 📚 API do Chat - NestJS
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## ✅ Visão Geral
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Esta API gerencia três principais recursos:
 
-## Description
+* **Usuários**: registro, autenticação, gerenciamento.
+* **Chats**: criação e gerenciamento de conversas.
+* **Mensagens**: envio, atualização, visualização e exclusão de mensagens em tempo real.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 🛠️ Tecnologias utilizadas
 
-```bash
-$ yarn install
+* **NestJS** - Estrutura principal.
+* **Prisma ORM** - Manipulação do banco de dados.
+* **JWT** - Autenticação.
+* **BcryptJS** - Criptografia de senhas.
+* **Passport** - OAuth com Google.
+* **WebSocket (Gateway)** - Comunicação em tempo real.
+* **Class-validator** - Validação de dados.
+
+---
+
+## 📦 Endpoints
+
+---
+
+## 🧑‍💻 Usuário
+
+### 🔹 POST `/user/register`
+
+**Descrição:** Cria um novo usuário com e-mail e senha.
+
+**Body:**
+
+```json
+{
+  "name": "João Silva",
+  "email": "joao@email.com",
+  "birth": "1990-01-01",
+  "password": "Senha@123",
+  "passwordConfirmation": "Senha@123"
+}
 ```
 
-## Compile and run the project
+**Validações:**
 
-```bash
-# development
-$ yarn run start
+* Nome, e-mail e senha obrigatórios.
+* E-mail válido.
+* Senhas devem ser iguais.
 
-# watch mode
-$ yarn run start:dev
+---
 
-# production mode
-$ yarn run start:prod
+### 🔹 POST `/user/login`
+
+**Descrição:** Autenticação tradicional via e-mail e senha.
+
+**Body:**
+
+```json
+{
+  "email": "joao@email.com",
+  "password": "Senha@123"
+}
 ```
 
-## Run tests
+**Resposta:** `{ "token": "<jwt_token>" }`
 
-```bash
-# unit tests
-$ yarn run test
+---
 
-# e2e tests
-$ yarn run test:e2e
+### 🔹 POST `/user/register-oauth`
 
-# test coverage
-$ yarn run test:cov
+**Descrição:** Finaliza registro de usuário autenticado via OAuth (Google).
+
+**Body:**
+
+```json
+{
+  "name": "João Silva",
+  "email": "joao@email.com",
+  "birth": "1990-01-01",
+  "provider": "google"
+}
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 🔹 GET `/user/google`
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**Descrição:** Redireciona para autenticação Google OAuth.
 
-```bash
-$ yarn install -g mau
-$ mau deploy
+---
+
+### 🔹 GET `/user/google/redirect`
+
+**Descrição:** Redirecionamento após autenticação Google. Gera token JWT e redireciona para o Frontend com o token.
+
+---
+
+### 🔹 GET `/user`
+
+**Descrição:** Lista todos os usuários, exceto o logado.
+
+**Headers:** Authorization: Bearer `<token>`
+
+---
+
+### 🔹 GET `/user/me`
+
+**Descrição:** Retorna os dados do usuário logado.
+
+---
+
+### 🔹 DELETE `/user`
+
+**Descrição:** Remove o usuário logado, gerenciando os chats que ele participa.
+
+---
+
+##  Chat
+
+### 🔹 Criar Chat
+
+**Descrição:** Cria um chat com participantes específicos.
+
+**Body:**
+
+```json
+{
+  "participants": ["id_usuario1", "id_usuario2"]
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**Resposta:** Dados do chat criado.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+### 🔹 Buscar Chats
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Descrição:** Recupera todos os chats que o usuário participa.
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 🔹 Atualizar Chat
 
-## Stay in touch
+**Descrição:** Pode ser usado para alterar participantes, status, etc.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+### 🔹 Deletar Chat
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Descrição:** Soft delete do chat (não exclui fisicamente, apenas desativa).
+
+---
+
+## 💬 Mensagem
+
+### 🔹 POST `/message/send-message`
+
+**Descrição:** Envia uma nova mensagem.
+
+**Headers:** Authorization: Bearer `<token>`
+
+**Body:**
+
+```json
+{
+  "message": "Olá, tudo bem?",
+  "chatId": "chat123",
+  "recipients": ["user456", "user789"]
+}
+```
+
+**Resposta:** Mensagem criada.
+
+---
+
+### 🔹 GET `/message/:id`
+
+**Descrição:** Recupera todas as mensagens de um chat específico.
+
+**Headers:** Authorization: Bearer `<token>`
+
+**Parâmetros:** `id`: ID do chat.
+
+---
+
+### 🔹 PUT `/message/:id`
+
+**Descrição:** Atualiza uma mensagem existente.
+
+**Body:**
+
+```json
+{
+  "message": "Mensagem editada"
+}
+```
+
+**Validações:** Apenas o conteúdo da mensagem pode ser alterado. O status será automaticamente definido como `EDITED`.
+
+---
+
+### 🔹 PATCH `/message/view-message`
+
+**Descrição:** Marca uma ou mais mensagens como visualizadas.
+
+**Body:**
+
+```json
+{
+  "ids": ["msg123", "msg456"]
+}
+```
+
+**Efeito:** Atualiza o campo `seenStatus` para `SEEN` e notifica via WebSocket.
+
+---
+
+### 🔹 DELETE `/message/:id`
+
+**Descrição:** Soft delete da mensagem. Altera o conteúdo para "Mensagem excluída".
+
+---
+
+## 🔒 Autenticação
+
+* **JWT:** Protege rotas sensíveis.
+* **Guards:** `JwtAuthGuard` e `Passport Google AuthGuard`.
+* **WebSocket:** Notificações em tempo real via `MessageGateway`.
+
+---
+
+## 🎯 Estrutura dos DTOs
+
+### ✅ CreateUserDTO
+
+* `name`: string (obrigatório)
+* `email`: string (obrigatório)
+* `birth`: string
+* `password`: string
+* `passwordConfirmation`: string
+* `provider`: string (opcional)
+
+---
+
+### ✅ LoginUserDTO
+
+* `email`: string (obrigatório)
+* `password`: string (obrigatório)
+
+---
+
+### ✅ UpdateUserDTO
+
+* `name`, `email`, `birth`, `password`, `passwordConfirmation`, `provider`: todos opcionais.
+* `password` exige força mínima: 8 caracteres, maiúscula, minúscula, número e símbolo.
+
+---
+
+### ✅ CreateChatDTO
+
+* `participants`: string[] — IDs dos participantes do chat.
+
+---
+
+### ✅ UpdateChatDTO
+
+* `participants?`: string[] — Lista opcional para atualizar participantes.
+* `active?`: boolean — Define se o chat está ativo ou não.
+
+---
+
+### ✅ CreateMessageDTO
+
+* `recipients`: array de IDs de usuários.
+* `message`: conteúdo da mensagem.
+* `chatId`: ID do chat.
+
+---
+
+## 📡 Comunicação em tempo real
+
+* Sempre que uma mensagem é enviada, editada, visualizada ou excluída, todos os participantes do chat são notificados via WebSocket.
+
+---
+
+## 📝 Considerações Finais
+
+* Projeto estruturado com separação clara de **Controller**, **Service** e **DTOs**.
+* **Prisma** garante integração robusta com o banco.
+* **Validação** e **tratamento de exceções** cuidadosos.
+* Lógica de **Soft Delete** preserva dados.
+* Suporte a **OAuth** via Google.
+
+---
+
+## 🚀 Como rodar?
+
+```bash
+npm install
+npm run start:dev
+```
+
+---
+
+### Link da API Online
+
+A API está disponível no endereço abaixo para que você possa testar e integrar diretamente:
+
+[API Chat - Ambiente de Produção](https://chat-production-406c.up.railway.app/)
+
+---
+
+### Como usar a API Online
+
+- **Autenticação:**  
+  Para acessar rotas protegidas, como envio de mensagens e gerenciamento de usuários, é necessário obter um token JWT.  
+  Faça login pelo endpoint `/user/login` enviando email e senha para receber o token.  
+  Em seguida, inclua no header das requisições protegidas:  
+  `Authorization: Bearer <seu_token_jwt>`
+
+- **Rotas públicas:**  
+  Alguns endpoints, como registro de usuário (`/user/register`) e autenticação via OAuth (`/user/google`), não requerem token.
+
+- **Comunicação em tempo real:**  
+  O WebSocket está disponível para receber notificações de mensagens enviadas, editadas ou visualizadas. Para conectar, use a URL de WebSocket fornecida na documentação do projeto (ex: `wss://chat-production-406c.up.railway.app/ws`).
+
+- **Formato das requisições:**  
+  Envie os dados no formato JSON via POST, PUT ou PATCH conforme o endpoint utilizado.
+
+---
+
+## ✅ To-Do Futuro:
+
+* Implementar **upload de arquivos** nas mensagens.
+* Melhorar sistema de **logs**.
+* Criar **filtros** de busca nas mensagens e chats.
+* **Testes unitários e e2e**.
