@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import api from '../api';
+import api, { apiUrl } from '../api';
 import CreateChat from '../components/ChatCreate';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
 import type { ChatProps, Message, User } from '../types/types';
 
-export const socket = io('http://localhost:3333', {
+export const socket = io(apiUrl, {
     path: '/socket.io',
     transports: ['websocket']
 });
@@ -91,7 +91,7 @@ function Chat() {
                 return;
             }
 
-            if (selectedUsers.length > 1 && groupName) {
+            if (selectedUsers.length >= 1 && groupName) {
                 await api.post<ChatProps>("/chat/create-group", {
                     name: groupName,
                     participants: selectedUsers,

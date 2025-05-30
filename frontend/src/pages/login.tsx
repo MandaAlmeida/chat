@@ -1,6 +1,6 @@
-import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import api, { apiUrl } from '../api';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -27,16 +27,17 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:3333/user/login', form);
+            const res = await api.post('/user/login', form);
             localStorage.setItem('token', res.data.token);
             navigate('/chat');
         } catch (err) {
             setError('Login falhou!');
         }
     };
+    console.log(apiUrl)
 
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:3333/user/google';
+        window.location.href = `${apiUrl}/user/google`;
     };
 
     return (

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function Register() {
             return;
         }
         try {
-            await axios.post('http://localhost:3333/user/register', form);
+            await api.post('/user/register', form);
             navigate('/');
         } catch (err: any) {
             if (err.response?.data?.message) {
