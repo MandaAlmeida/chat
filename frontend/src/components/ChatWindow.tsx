@@ -1,8 +1,8 @@
 
-import { useEffect, useRef, useState } from 'react';
-import type { ChatProps, Message, User } from '../types/types';
 import { CheckIcon, ChecksIcon, PencilIcon, TrashIcon } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api';
+import type { ChatProps, Message, User } from '../types/types';
 
 interface Props {
     selectedChat: ChatProps;

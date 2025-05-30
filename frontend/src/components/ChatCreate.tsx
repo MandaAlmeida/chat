@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
-import type { User } from "../types/types";
 import { socket } from "../pages/chat";
+import type { User } from "../types/types";
 
 
 interface Props {
