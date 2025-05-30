@@ -6,9 +6,9 @@ Esta aplicação é responsável pela interface do usuário, permitindo a comuni
 ## Tecnologias Utilizadas
 
 - React
-- TypeScript (se estiver usando)
-- CSS / Styled Components / Tailwind CSS (conforme o que estiver no projeto)
-- WebSocket / Socket.io (se houver comunicação em tempo real)
+- TypeScript 
+- Tailwind CSS
+- WebSocket / Socket.io
 - Outras libs importantes (ex: axios, react-router, etc.)
 
 ## Instalação
