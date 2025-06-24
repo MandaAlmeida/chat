@@ -1,17 +1,17 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from 'src/auth/current-user-decorator';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from 'src/contracts/user.dto';
-import { EnvService } from 'src/env/env.service';
-import { UserService } from 'src/service/user.service';
+import { CurrentUser } from '@/auth/current-user-decorator';
+import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { CreateUserDTO, LoginUserDTO, UpdateUserDTO } from '@/contracts/user.dto';
+import { EnvService } from '@/env/env.service';
+import { UserService } from '@/service/user.service';
 
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService, private config: EnvService) { }
 
-  @Post('/register')
+  @Post('register')
   create(@Body() createUserDto: CreateUserDTO) {
     return this.userService.create(createUserDto);
   }

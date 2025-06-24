@@ -25,7 +25,12 @@ export default function CreateChat({ users, error, groupName, setGroupName, sele
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        socket.disconnect();
+        const disconnectSocket = () => {
+            if (socket) {
+                socket.disconnect();
+                console.log('Socket desconectado pelo frontend');
+            }
+        };
         navigate('/');
     };
 

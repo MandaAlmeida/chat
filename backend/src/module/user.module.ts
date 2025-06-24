@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { UserController } from 'src/controller/user.controller';
-import { UserService } from 'src/service/user.service';
+import { UserController } from '@/controller/user.controller';
+import { UserService } from '@/service/user.service';
 import { PrismaModule } from './prisma.module';
-import { AuthModule } from 'src/auth/auth.module';
-import { EnvModule } from 'src/env/env.module';
+import { AuthModule } from '@/auth/auth.module';
+import { EnvModule } from '@/env/env.module';
 
 
 @Module({

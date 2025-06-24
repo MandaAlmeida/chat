@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateMessageDTO, UpdateMessageDTO } from 'src/contracts/message.dto';
+import { CreateMessageDTO, UpdateMessageDTO } from '@/contracts/message.dto';
 import { PrismaService } from './prisma.service';
-import { Status, SeenStatus } from '@prisma/client';
-import { MessageGateway } from 'src/gateway/message.gateway';
+import { Status, SeenStatus, $Enums, Content } from '@prisma/client';
+import { MessageGateway } from '@/gateway/message.gateway';
 
 @Injectable()
 export class MessageService {
@@ -10,6 +10,7 @@ export class MessageService {
         private readonly prisma: PrismaService, // Serviço do Prisma para interagir com o banco de dados
         private readonly messageGateway: MessageGateway // Gateway para comunicação em tempo real via WebSocket
     ) { }
+
 
     // Envia uma nova mensagem
     async sendMessage(user: { sub: string }, newMessage: CreateMessageDTO) {
@@ -80,6 +81,48 @@ export class MessageService {
         });
 
         return mensagens;
+    }
+
+    // Busca a  ultima mensagem de um chat específico
+    async findLastMessagesForChats(user: { sub: string }, chatIds: string[]) {
+        const results = await Promise.all(
+            chatIds.map(async (chatId) => {
+                // Verifica se o chat existe
+                const existChat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+                if (!existChat) return null;
+
+                // Verifica se o usuário deletou o chat
+                const deletedChat = await this.prisma.deletedChat.findUnique({
+                    where: {
+                        userId_chatId: {
+                            userId: user.sub,
+                            chatId: chatId
+                        }
+                    }
+                });
+
+                const whereCondition: any = { chatId };
+
+                if (deletedChat) {
+                    if (deletedChat.active) return null;
+                    else if (deletedChat.deletedAt) {
+                        whereCondition.createdAt = { gt: deletedChat.updatedAt };
+                    }
+                }
+
+                const lastMessage = await this.prisma.content.findFirst({
+                    where: whereCondition,
+                    orderBy: { createdAt: 'desc' },
+                });
+
+                return lastMessage;
+
+            })
+        );
+        const filtered: Content[] = results.filter(
+            (msg): msg is Content => msg !== null
+        );
+        return filtered;
     }
 
     // Atualiza uma mensagem

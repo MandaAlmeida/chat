@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { EnvDTO } from "src/contracts/env.dto";
+import { EnvDTO } from "@/contracts/env.dto";
 
 
 @Injectable()

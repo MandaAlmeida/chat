@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
+import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from '@/contracts/chat.dto';
 import { SeenStatus, Status, TypeChat } from '@prisma/client';
-import { MessageGateway } from 'src/gateway/message.gateway';
+import { MessageGateway } from '@/gateway/message.gateway';
 
 @Injectable()
 export class ChatService {
@@ -201,7 +201,6 @@ export class ChatService {
     // Remove participantes de um grupo
     async removeParticipantsByGroup(id: string, participants: string[]) {
         await this.checkChatExist(id);
-
         const deleteChat = await this.prisma.chat.update({
             where: { id },
             data: { participants: { disconnect: participants.map(participantId => ({ id: participantId })) } }
@@ -238,7 +237,6 @@ export class ChatService {
         for (const userId of newRecipients) {
             this.chatGateway.sendMessage(userId, payload);
         }
-
         return deleteChat;
     }
 

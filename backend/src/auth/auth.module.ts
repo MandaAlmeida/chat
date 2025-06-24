@@ -2,9 +2,9 @@ import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { JwtStrategy } from "./jwt.strategy";
-import { EnvService } from "src/env/env.service";
-import { EnvModule } from "src/env/env.module";
-import { PrismaModule } from "src/module/prisma.module";
+import { EnvService } from "@/env/env.service";
+import { EnvModule } from "@/env/env.module";
+import { PrismaModule } from "@/module/prisma.module";
 import { GoogleStrategy } from "./google.strategy";
 import { ConfigModule } from "@nestjs/config";
 

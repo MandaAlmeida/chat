@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
-import { CurrentUser } from 'src/auth/current-user-decorator';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from 'src/contracts/chat.dto';
-import { ChatService } from 'src/service/chat.service';
+import { CurrentUser } from '@/auth/current-user-decorator';
+import { JwtAuthGuard } from '@/auth/jwt-auth.guard';
+import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from '@/contracts/chat.dto';
+import { ChatService } from '@/service/chat.service';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)

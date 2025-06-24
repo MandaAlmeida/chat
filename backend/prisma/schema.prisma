@@ -15,6 +15,7 @@ enum Status {
 
 enum SeenStatus {
   SENT
+  DELIVERED
   SEEN
   USER
 }
@@ -38,8 +39,16 @@ model User {
   Chat        Chat[]        @relation("UserCreatedChats")
   ChatAdd     Chat[]        @relation("UserParticipantChats")
   DeletedChat DeletedChat[]
+  UserStatus  UserStatus?
 
   @@map("users")
+}
+
+model UserStatus {
+  userId   String   @id
+  isOnline Boolean  @default(false)
+  lastSeen DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id])
 }
 
 model Chat {

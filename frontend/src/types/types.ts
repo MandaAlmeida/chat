@@ -2,6 +2,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
+    isOnline: boolean;
 }
 
 export interface Message {
@@ -11,7 +12,20 @@ export interface Message {
     timestamp: string;
     status: string;
     seenStatus: string
-    type: string
+    type: string;
+    chatId: string;
+}
+
+export interface LastMessage {
+    id: string;
+    chatId: string;
+    authorId: string;
+    message: string;
+    type: string;
+    seenStatus: string;
+    status: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 

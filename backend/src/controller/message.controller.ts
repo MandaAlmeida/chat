@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from "@nestjs/common";
-import { CurrentUser } from "src/auth/current-user-decorator";
-import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
-import { CreateMessageDTO, UpdateMessageDTO } from "src/contracts/message.dto";
-import { MessageService } from "src/service/message.service";
+import { CurrentUser } from "@/auth/current-user-decorator";
+import { JwtAuthGuard } from "@/auth/jwt-auth.guard";
+import { CreateMessageDTO, UpdateMessageDTO } from "@/contracts/message.dto";
+import { MessageService } from "@/service/message.service";
 
 @Controller('message')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +18,12 @@ export class MessageController {
     async findMessage(@CurrentUser() user: { sub: string }, @Param('id') chatId: string) {
         return this.messageService.findMessage(user, chatId);
     }
+
+    @Post("last-messages")
+    async findLastMessage(@CurrentUser() user: { sub: string }, @Body('chatIds') chatIds: string[]) {
+        return this.messageService.findLastMessagesForChats(user, chatIds);
+    }
+
 
     @Put(":id")
     async updateMessage(@Param('id') id: string, @Body("message") message: string) {

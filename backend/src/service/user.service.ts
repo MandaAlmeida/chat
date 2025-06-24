@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { CreateUserDTO, LoginUserDTO } from 'src/contracts/user.dto';
+import { CreateUserDTO, LoginUserDTO } from '@/contracts/user.dto';
 import { PrismaService } from './prisma.service';
 import { compare, hash } from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -109,7 +109,16 @@ export class UserService {
   async findAll(user: { sub: string }) {
     const existUsers = await this.prisma.user.findMany({
       where: { id: { not: user.sub } },
-      select: { id: true, name: true }
+      select: {
+        id: true,
+        name: true,
+        UserStatus: {
+          select: {
+            isOnline: true,
+            lastSeen: true,
+          },
+        },
+      },
     });
 
     if (!existUsers || existUsers.length === 0) {
@@ -125,11 +134,15 @@ export class UserService {
 
     // Busca o usuário, omitindo a senha
     const existUser = await this.prisma.user.findUnique({
-      omit: { password: true },     // Atenção: 'omit' não existe no Prisma; seria necessário 'select' ou 'exclude'!
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
       where: { id: userId }
     });
 
-    if (!existUser) throw new ConflictException("Úsuario não encontrado");
+    if (!existUser) throw new ConflictException("Usuario não encontrado");
 
     return existUser;
   }
@@ -161,5 +174,7 @@ export class UserService {
 
     // Finalmente, exclui o usuário
     await this.prisma.user.delete({ where: { id: user.sub } });
+
+    return ({ message: "Usuario deletado com sucesso" })
   }
 }

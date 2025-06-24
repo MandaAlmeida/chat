@@ -4,7 +4,8 @@ import api, { apiUrl } from '../api';
 import CreateChat from '../components/ChatCreate';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
-import type { ChatProps, Message, User } from '../types/types';
+import type { ChatProps, LastMessage, Message, User } from '../types/types';
+import { FunnelIcon, PlusIcon } from '@phosphor-icons/react';
 
 export const socket = io(apiUrl, {
     path: '/socket.io',
@@ -12,15 +13,30 @@ export const socket = io(apiUrl, {
 });
 
 function Chat() {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User>({
+        id: "",
+        email: "",
+        name: "",
+        isOnline: false
+    });
     const [users, setUsers] = useState<User[]>([]);
     const [message, setMessage] = useState<string>('');
     const [messages, setMessages] = useState<Message[]>([]);
+    const [lastMessage, setLastMessage] = useState<LastMessage[]>([]);
     const [selectedChat, setSelectedChat] = useState<ChatProps | null>(null);
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [groupName, setGroupName] = useState("");
     const [error, setError] = useState("");
     const [chats, setChats] = useState<ChatProps[]>([]);
+    const [createNewChat, setCreateNewChat] = useState(false);
+
+    useEffect(() => {
+        const socket = io('http://localhost:3333', {
+            query: { userId: currentUser?.id }
+        });
+    }, [currentUser]);
+
+    console.log(users)
 
     const fetchUser = async () => {
         const res = await api.get('/user/me');
@@ -41,7 +57,8 @@ function Chat() {
             timestamp: msg.createdAt,
             status: msg.status,
             seenStatus: msg.seenStatus,
-            type: msg.type
+            type: msg.type,
+            chatId: msg.chatId
         }));
         setMessages(newMsgs);
 
@@ -162,8 +179,6 @@ function Chat() {
     };
 
     const handleMessage = useCallback((data: Partial<Message> & { chatId: string }) => {
-        console.log('Socket recebido:', data);
-
         if (selectedChat && data.chatId === selectedChat.id) {
             setMessages(prev => {
                 const exists = prev.some(m => m.id === data.id);
@@ -178,8 +193,6 @@ function Chat() {
     }, [selectedChat]);
 
     const handleChatUpdate = useCallback((data: ChatProps) => {
-        console.log('Atualização de chat recebida:', data);
-
         setChats(prev => {
             const exists = prev.some(chat => chat.id === data.id);
             if (exists) {
@@ -189,6 +202,15 @@ function Chat() {
         });
     }, []);
 
+    async function fetchLastMessages(chatIds: string[]) {
+        try {
+            const response = await api.post('/message/last-messages', { chatIds });
+            return setLastMessage(response.data);
+        } catch (error) {
+            console.error('Erro ao buscar mensagens:', error);
+            return [];
+        }
+    }
 
     useEffect(() => {
         fetchChats();
@@ -222,10 +244,29 @@ function Chat() {
         }
     }, [selectedChat]);
 
+    useEffect(() => {
+        if (chats && chats.length > 0) {
+            const chatIds = chats.map(chat => chat.id);
+            fetchLastMessages(chatIds);
+        }
+    }, [chats]);
+
     return (
         <div className="flex h-screen">
-            <div className="w-80 border-r border-gray-300 flex flex-col">
-                <CreateChat
+
+            <div className="w-96 border-r border-gray-300 flex flex-col h-screen">
+                <header className="flex h-[95px] items-center justify-between p-6 border-b border-gray-300">
+                    <div className="flex items-center gap-2.5">
+                        <h2 className="text-xl font-bold">Messagens</h2>
+                        <div className="bg-[#EDF2F7] w-8 rounded-3xl text-center"><text className="text-sm font-bold">{chats.length}</text></div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-5">
+                        <button onClick={() => setCreateNewChat(!createNewChat)} className="bg-[#615EF0] w-6 h-6 rounded-full flex items-center justify-center cursor-pointer"><PlusIcon size={20} color="white" /></button>
+                        <button className="w-6 h-6 flex items-center justify-center cursor-pointer"><FunnelIcon size={20} color="#615EF0" /></button>
+                    </div>
+                </header>
+                {createNewChat ? <CreateChat
                     users={users}
                     createChat={createChat}
                     error={error}
@@ -233,13 +274,13 @@ function Chat() {
                     selectedUsers={selectedUsers}
                     setGroupName={setGroupName}
                     setSelectedUsers={setSelectedUsers}
-                />
-                <ChatList
+                /> : <ChatList
                     onSelectChat={setSelectedChat}
                     currentUser={currentUser}
                     chats={chats}
-                    onDeleteChat={deleteChat}
-                />
+                    messages={lastMessage}
+                    selectedChat={selectedChat}
+                />}
             </div>
             {
                 selectedChat && (
