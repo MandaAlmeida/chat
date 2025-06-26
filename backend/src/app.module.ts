@@ -6,7 +6,7 @@ import { EnvModule } from '@/env/env.module';
 import { AuthModule } from '@/auth/auth.module';
 import { MessageModule } from '@/module/message.module';
 import { LoggerModule } from 'nestjs-pino';
-import { CustomLogger } from '@/logs/custom.logger';
+import { CustomLogger } from '@/logs/customLogger';
 
 
 @Module({
