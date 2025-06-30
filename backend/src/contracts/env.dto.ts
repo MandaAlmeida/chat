@@ -5,6 +5,9 @@ export class EnvDTO {
     DATABASE_URL: string
 
     @IsString()
+    REDIS_URL: string
+
+    @IsString()
     PORT: number
 
     @IsString()
@@ -24,4 +27,10 @@ export class EnvDTO {
 
     @IsString()
     JWT_PUBLIC_KEY: string
+
+    @IsString()
+    JWT_REFRESH_PRIVATE_KEY: string
+
+    @IsString()
+    JWT_REFRESH_PUBLIC_KEY: string
 }

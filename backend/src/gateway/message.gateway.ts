@@ -54,7 +54,7 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
             },
         });
 
-        console.log(`Usuário conectado: ${userId}`);
+        console.log(`Usuario conectado: ${userId}`);
     }
 
 
@@ -72,7 +72,7 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
             },
         });
 
-        console.log(`Usuário desconectado: ${userId}`);
+        console.log(`Usuario desconectado: ${userId}`);
     }
     // Envia dados de chat para um usuário específico
     sendChat(userId: string, chat: any) {

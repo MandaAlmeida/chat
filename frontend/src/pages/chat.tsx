@@ -1,23 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
-import io from 'socket.io-client';
-import api, { apiUrl } from '../api';
+import {
+    connectSocket,
+    getSocket,
+    setupSocketListeners,
+    removeSocketListeners
+} from '../sockets';
+
+import api from '../api';
 import CreateChat from '../components/ChatCreate';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
 import type { ChatProps, LastMessage, Message, User } from '../types/types';
 import { FunnelIcon, PlusIcon } from '@phosphor-icons/react';
 
-export const socket = io(apiUrl, {
-    path: '/socket.io',
-    transports: ['websocket']
-});
-
 function Chat() {
     const [currentUser, setCurrentUser] = useState<User>({
         id: "",
         email: "",
         name: "",
-        isOnline: false
+        UserStatus: {
+            isOnline: false
+        }
     });
     const [users, setUsers] = useState<User[]>([]);
     const [message, setMessage] = useState<string>('');
@@ -29,14 +32,6 @@ function Chat() {
     const [error, setError] = useState("");
     const [chats, setChats] = useState<ChatProps[]>([]);
     const [createNewChat, setCreateNewChat] = useState(false);
-
-    useEffect(() => {
-        const socket = io('http://localhost:3333', {
-            query: { userId: currentUser?.id }
-        });
-    }, [currentUser]);
-
-    console.log(users)
 
     const fetchUser = async () => {
         const res = await api.get('/user/me');
@@ -218,25 +213,22 @@ function Chat() {
 
     useEffect(() => {
         fetchUser();
+        fetchUsers();
     }, []);
 
     useEffect(() => {
-        if (currentUser) {
-            fetchUsers();
+        if (currentUser?.id) {
+            connectSocket(currentUser.id);
+            const socket = getSocket();
             socket.emit('newMessage', currentUser.id);
+            setupSocketListeners(handleMessage, handleChatUpdate);
         }
-    }, [currentUser]);
-
-    useEffect(() => {
-        socket.on('message', handleMessage);
-        socket.on('chat', handleChatUpdate);
 
         return () => {
-            socket.off('message', handleMessage);
-            socket.off('chat', handleChatUpdate);
+            removeSocketListeners();
         };
+    }, [currentUser, handleMessage, handleChatUpdate]);
 
-    }, [handleMessage, handleChatUpdate]);
 
     useEffect(() => {
         if (selectedChat) {

@@ -9,7 +9,7 @@ type Props = {
 export function HeaderChat({ name, id, status }: Props) {
     return (
         <header className="flex items-center justify-between p-6 border-b border-gray-300">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col">
                 <h2 className="text-xl font-bold">{name}</h2>
                 <section className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 bg-[#68D391] rounded-full flex"></span>

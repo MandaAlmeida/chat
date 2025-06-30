@@ -39,7 +39,9 @@ export default function Login() {
         e.preventDefault();
         try {
             const res = await api.post('/user/login', form);
-            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('access_token', res.data.access_token);
+            localStorage.setItem('refresh_token', res.data.refresh_token);
+
             navigate('/chat');
         } catch (err) {
             setError('Login falhou!');

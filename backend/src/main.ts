@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaService } from './service/prisma.service';
 import { EnvService } from './env/env.service';
-import { CustomLogger } from './logs/custom.logger';
+//  import { CustomLogger } from './logs/custom.logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,7 +17,7 @@ async function bootstrap() {
   });
 
   // Config Logger
-  app.useLogger(app.get(CustomLogger));
+  // app.useLogger(app.get(CustomLogger));
 
   const port = envService.get("PORT")
   await app.listen(port);

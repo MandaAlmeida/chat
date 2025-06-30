@@ -1,14 +1,22 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDTO, LoginUserDTO } from '@/contracts/user.dto';
 import { PrismaService } from './prisma.service';
 import { compare, hash } from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { EnvService } from '@/env/env.service';
+import { AuthService } from '@/auth/auth.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private jwt: JwtService,         // Serviço para geração de tokens JWT
-    private prisma: PrismaService    // Serviço para operações no banco via Prisma
+    private prisma: PrismaService,    // Serviço para operações no banco via Prisma
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
+    private config: EnvService,
+    private authService: AuthService
   ) { }
 
   // Criação de um novo usuário
@@ -41,10 +49,8 @@ export class UserService {
   async finishregisterOAuthUser(user: CreateUserDTO) {
     const { email, birth, name, provider } = user;
 
-    // Busca usuário pelo email
     const existUser = await this.prisma.user.findUnique({ where: { email } });
 
-    // Atualiza os dados do usuário com informações complementares
     const updateUser = await this.prisma.user.update({
       where: { id: existUser?.id },
       data: {
@@ -55,37 +61,34 @@ export class UserService {
       },
     });
 
-    // Gera token JWT
-    const accessToken = this.jwt.sign({ sub: updateUser.id.toString() });
-    return accessToken;
+    const tokens = await this.authService.generateTokens(updateUser.id.toString());
+    console.log(tokens)
+    return tokens;
   }
+
 
   // Login tradicional com email e senha
   async login(user: LoginUserDTO) {
     const { email, password } = user;
 
-    // Busca usuário pelo email
     const existUser = await this.prisma.user.findUnique({ where: { email } });
     if (!existUser || !existUser.password) throw new UnauthorizedException("Senha ou email incorretos");
 
-    // Compara senhas
     const checkPassword = await compare(password, existUser.password);
     if (!checkPassword) throw new UnauthorizedException("Senha ou email incorretos");
 
-    // Gera token de acesso
-    const accessToken = this.jwt.sign({ sub: existUser.id.toString() });
-    return { token: accessToken };
+    const tokens = await this.authService.generateTokens(existUser.id.toString());
+    return tokens;
   }
+
 
   // Login via OAuth (Google, etc.)
   async oauthLogin(profile: { email: string; name: string }) {
-    // Verifica se o usuário já existe
     const existUser = await this.prisma.user.findUnique({
       where: { email: profile.email },
     });
 
     if (!existUser) {
-      // Cria novo usuário caso não exista
       const userData = {
         email: profile.email,
         name: profile.name,
@@ -95,23 +98,31 @@ export class UserService {
 
       const user = await this.prisma.user.create({ data: userData });
 
-      // Gera token de acesso
-      const accessToken = this.jwt.sign({ sub: user.id });
-      return { token: accessToken, user, newUser: true };
+      const tokens = await this.authService.generateTokens(user.id.toString());
+      return { ...tokens, user, newUser: true };
     }
 
-    // Usuário já existe: retorna token
-    const accessToken = this.jwt.sign({ sub: existUser.id });
-    return { token: accessToken };
+    const tokens = await this.authService.generateTokens(existUser.id.toString());
+    return tokens;
   }
+
 
   // Retorna lista de todos os usuários exceto o logado
   async findAll(user: { sub: string }) {
+    const cacheKey = `users-except-${user.sub}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    console.log(cached)
+    if (cached) {
+      console.log('Retornando do cache');
+      return cached;
+    }
+
     const existUsers = await this.prisma.user.findMany({
       where: { id: { not: user.sub } },
       select: {
         id: true,
         name: true,
+        email: true,
         UserStatus: {
           select: {
             isOnline: true,
@@ -124,6 +135,8 @@ export class UserService {
     if (!existUsers || existUsers.length === 0) {
       throw new ConflictException("Usuários não encontrados");
     }
+
+    await this.cacheManager.set(cacheKey, existUsers, 60);
 
     return existUsers;
   }
@@ -177,4 +190,17 @@ export class UserService {
 
     return ({ message: "Usuario deletado com sucesso" })
   }
+
+  async testRedis() {
+    try {
+      console.log('REDIS_URL no main.ts:', this.config.get("REDIS_URL"));
+
+      await this.cacheManager.set('test-key', 'funciona?', 60);
+      const value = await this.cacheManager.get('test-key');
+      console.log('Redis retornou:', value);
+    } catch (err) {
+      console.error('Erro ao conectar com Redis:', err);
+    }
+  }
+
 }

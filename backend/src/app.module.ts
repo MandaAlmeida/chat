@@ -1,4 +1,4 @@
-import { Module, LoggerService } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { UserModule } from '@/module/user.module';
 import { ChatModule } from '@/module/chat.module';
 import { PrismaModule } from '@/module/prisma.module';
@@ -6,7 +6,7 @@ import { EnvModule } from '@/env/env.module';
 import { AuthModule } from '@/auth/auth.module';
 import { MessageModule } from '@/module/message.module';
 import { LoggerModule } from 'nestjs-pino';
-import { CustomLogger } from './logs/custom.logger';
+//  import { CustomLogger } from './logs/custom.logger';
 
 
 @Module({
@@ -16,14 +16,13 @@ import { CustomLogger } from './logs/custom.logger';
     PrismaModule,
     EnvModule,
     AuthModule,
-    ChatModule,
     MessageModule,
 
     // Config Logger
-    LoggerModule.forRoot({ pinoHttp: { level: "trace" } }),
+    // LoggerModule.forRoot({ pinoHttp: { level: 'trace' } }),
+
   ],
-  controllers: [],
-  providers: [CustomLogger],
-  exports: [CustomLogger]
+  // providers: [CustomLogger],
+  // exports: [CustomLogger],
 })
 export class AppModule { }

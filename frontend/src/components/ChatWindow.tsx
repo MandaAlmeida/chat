@@ -74,7 +74,7 @@ export default function ChatPropsWindow({
 
     const user = users.find(u => isUserInChat(u.id, selectedChat));
 
-    const status = user?.isOnline;
+    const status = user?.UserStatus.isOnline;
 
     return (
         <div className="w-full h-screen flex flex-col">
@@ -115,7 +115,9 @@ export default function ChatPropsWindow({
                                             </span>
                                             {isOwnMessage &&
                                                 (msg.seenStatus === 'SEEN' ? (
-                                                    <ChecksIcon size={14} className="text-blue-600" />
+                                                    <ChecksIcon size={14} className="text-[#3e3ca0]" />
+                                                ) : (msg.seenStatus === 'DELIVERED') ? (
+                                                    <ChecksIcon size={14} className="text-gray-300" />
                                                 ) : (
                                                     <CheckIcon size={14} className="text-white" />
                                                 ))}
@@ -143,7 +145,7 @@ export default function ChatPropsWindow({
                     <>
                         <button
                             onClick={handleEditConfirm}
-                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 mr-2"
+                            className="px-4 py-2 bg-[#615EF0] text-white rounded hover:bg-[#3e3ca0] mr-2"
                         >
                             OK
                         </button>

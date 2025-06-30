@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
-import { socket } from "../pages/chat";
 import type { User } from "../types/types";
+import { removeSocketListeners } from "../sockets";
 
 
 interface Props {
@@ -26,10 +26,9 @@ export default function CreateChat({ users, error, groupName, setGroupName, sele
     const handleLogout = () => {
         localStorage.removeItem('token');
         const disconnectSocket = () => {
-            if (socket) {
-                socket.disconnect();
-                console.log('Socket desconectado pelo frontend');
-            }
+            removeSocketListeners();
+            console.log('Socket desconectado pelo frontend');
+
         };
         navigate('/');
     };

@@ -2,7 +2,10 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    isOnline: boolean;
+    UserStatus: {
+        isOnline: boolean;
+    }
+
 }
 
 export interface Message {
