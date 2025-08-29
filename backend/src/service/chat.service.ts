@@ -1,321 +1,365 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateChatDTO, CreateGroupDTO, UpdateGroupChatDTO } from '@/contracts/chat.dto';
+import {
+  CreateChatDTO,
+  CreateGroupDTO,
+  UpdateGroupChatDTO,
+} from '@/contracts/chat.dto';
 import { SeenStatus, Status, TypeChat } from '@prisma/client';
 import { MessageGateway } from '@/gateway/message.gateway';
 
 @Injectable()
 export class ChatService {
-    constructor(
-        private prisma: PrismaService, // Serviço para interagir com o banco via Prisma
-        private readonly chatGateway: MessageGateway // Gateway para enviar mensagens em tempo real via WebSocket
-    ) { }
+  constructor(
+    private prisma: PrismaService, // Serviço para interagir com o banco via Prisma
+    private readonly chatGateway: MessageGateway, // Gateway para enviar mensagens em tempo real via WebSocket
+  ) {}
 
-    // Busca um chat entre dois usuários
-    async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
-        const userId = createChat.participant;
+  // Busca um chat entre dois usuários
+  async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
+    const userId = createChat.participant;
 
-        // Verifica se já existe um chat individual entre os dois usuários
-        const chat = await this.prisma.chat.findFirst({
-            where: {
-                type: "INDIVIDUAL",
-                OR: [
-                    { createId: user.sub, participantIds: { has: userId } },
-                    { createId: userId, participantIds: { has: user.sub } }
-                ]
-            }
-        });
+    // Busca por chat individual existente entre os dois usuários
+    const chat = await this.prisma.chat.findFirst({
+      where: {
+        type: 'INDIVIDUAL',
+        OR: [
+          {
+            createId: user.sub,
+            participantIds: { has: userId },
+          },
+          {
+            createId: userId,
+            participantIds: { has: user.sub },
+          },
+        ],
+      },
+      include: { DeletedChat: true, participants: true, Content: true },
+    });
 
-        if (!chat) return null; // Se não existir, retorna nulo
+    // Se não existir chat, retorna null
+    if (!chat) return null;
 
-        if (chat.type === "GROUP") return; // Se for grupo, ignora
+    // Se o chat foi deletado, reativa
+    if (chat.DeletedChat && chat.DeletedChat[0].active) {
+      await this.prisma.deletedChat.update({
+        where: { id: chat.DeletedChat[0].id },
+        data: { active: false },
+      });
 
-        // Verifica se o chat está marcado como deletado para o usuário
-        const deleted = await this.prisma.deletedChat.findFirst({
-            where: { userId: user.sub, chatId: chat.id }
-        });
+      // Cria mensagem de sistema informando que o usuário voltou ao chat
+      const systemMessage = await this.prisma.content.create({
+        data: {
+          type: 'SYSTEM',
+          chatId: chat.id,
+          authorId: user.sub,
+          message: 'entrou no chat',
+          status: Status.USER,
+          seenStatus: SeenStatus.USER,
+        },
+      });
 
-        // Se estava deletado, reativa
-        if (deleted) {
-            await this.prisma.deletedChat.update({
-                where: { id: deleted.id },
-                data: { active: false }
-            });
+      // Monta payload para enviar via WebSocket
+      const chatPayload = {
+        id: systemMessage.id,
+        sender: systemMessage.authorId,
+        content: systemMessage.message,
+        chatId: systemMessage.chatId,
+        timestamp: systemMessage.createdAt,
+        status: systemMessage.status,
+        seenStatus: systemMessage.seenStatus,
+        type: 'SYSTEM',
+      };
 
-            // Cria uma mensagem de sistema indicando que o usuário voltou ao chat
-            const message = {
-                type: 'SYSTEM',
-                chatId: chat.id,
-                authorId: user.sub,
-                message: 'entrou no chat',
-                status: Status.USER,
-                seenStatus: SeenStatus.USER
-            };
-
-            const newMessage = await this.prisma.content.create({ data: message });
-
-            const chatPayload = {
-                id: newMessage.id,
-                sender: newMessage.authorId,
-                content: 'entrou no chat',
-                chatId: newMessage.chatId,
-                timestamp: newMessage.createdAt,
-                status: newMessage.status,
-                seenStatus: newMessage.seenStatus
-            };
-
-            // Envia mensagem para todos os participantes
-            const newRecipients = new Set([...chat.participantIds, chat.createId]);
-
-            for (const userId of newRecipients) {
-                this.chatGateway.sendMessage(userId, chatPayload);
-            }
-        }
-
-        return chat;
+      // Envia mensagem para todos os participantes do chat
+      const recipients = new Set([...chat.participantIds, chat.createId]);
+      for (const recipientId of recipients) {
+        this.chatGateway.sendMessage(recipientId, chatPayload);
+      }
     }
 
-    // Cria um chat individual
-    async createChat(user: { sub: string }, createChat: CreateChatDTO) {
-        const { name, participant } = createChat;
+    return chat;
+  }
 
-        // Valida se usuário existe
-        const existUser = await this.prisma.user.findUnique({
-            where: { id: participant },
-        });
+  // Cria um chat individual
+  async createChat(user: { sub: string }, createChat: CreateChatDTO) {
+    const { name, participant } = createChat;
 
-        if (!existUser) throw new NotFoundException('Usuário não encontrado');
+    // Valida se usuário existe
+    const existUser = await this.prisma.user.findUnique({
+      where: { id: participant },
+    });
 
-        // Cria o chat no banco
-        const newChat = await this.prisma.chat.create({
-            data: {
-                name,
-                createId: user.sub,
-                active: true,
-                type: TypeChat.INDIVIDUAL,
-                participantIds: [participant],
-                participants: { connect: [{ id: participant }] }
-            }
-        });
+    if (!existUser) throw new NotFoundException('Usuário não encontrado');
 
-        // Payload para notificar participantes
-        const chatPayload = {
-            id: newChat.id,
-            sender: newChat.createId,
-            timestamp: newChat.createdAt,
-            name: newChat.name,
-            type: newChat.type,
-            participants: newChat.participantIds
-        };
+    // Cria o chat no banco
+    const newChat = await this.prisma.chat.create({
+      data: {
+        name,
+        createId: user.sub,
+        active: true,
+        type: TypeChat.INDIVIDUAL,
+        participantIds: [participant],
+        participants: { connect: [{ id: participant }] },
+      },
+      include: { DeletedChat: true, participants: true, Content: true },
+    });
 
-        const newRecipients = new Set([...newChat.participantIds, user.sub]);
+    // Payload para notificar participantes
+    const chatPayload = {
+      id: newChat.id,
+      sender: newChat.createId,
+      timestamp: newChat.createdAt,
+      name: newChat.name,
+      type: newChat.type,
+      participants: newChat.participantIds,
+    };
 
-        // Envia notificação via gateway
-        for (const userId of newRecipients) {
-            this.chatGateway.sendChat(userId, chatPayload);
-        }
+    const newRecipients = new Set([...newChat.participantIds, user.sub]);
 
-        return newChat;
+    // Envia notificação via gateway
+    for (const userId of newRecipients) {
+      this.chatGateway.sendChat(userId, chatPayload);
     }
 
-    // Cria um chat em grupo
-    async createGroupChat(userId: { sub: string }, createGroup: CreateGroupDTO) {
-        const { name, participants } = createGroup;
+    return newChat;
+  }
 
-        // Impede criar grupo com si mesmo
-        if (participants.includes(userId.sub)) {
-            throw new NotFoundException('Você não pode criar chat com seu próprio usuário');
-        }
+  // Cria um chat em grupo
+  async createGroupChat(userId: { sub: string }, createGroup: CreateGroupDTO) {
+    const { name, participants } = createGroup;
 
-        const newChat = await this.prisma.chat.create({
-            data: {
-                name,
-                createId: userId.sub,
-                active: true,
-                type: TypeChat.GROUP,
-                participantIds: participants,
-                participants: { connect: participants.map(participantId => ({ id: participantId })) }
-            }
-        });
-
-        const chatPayload = {
-            id: newChat.id,
-            sender: newChat.createId,
-            timestamp: newChat.createdAt,
-            name: newChat.name,
-            type: newChat.type,
-            participants: newChat.participantIds
-        };
-
-        const newRecipients = new Set([...newChat.participantIds, userId.sub]);
-
-        // Notifica todos os membros
-        for (const userId of newRecipients) {
-            this.chatGateway.sendChat(userId, chatPayload);
-        }
-
-        return newChat;
+    // Impede criar grupo com si mesmo
+    if (participants.includes(userId.sub)) {
+      throw new NotFoundException(
+        'Você não pode criar chat com seu próprio usuário',
+      );
     }
 
-    // Lista todos os chats do usuário, exceto os deletados
-    async findChat(userId: { sub: string }) {
-        const allChats = await this.prisma.chat.findMany({
-            where: {
-                active: true,
-                OR: [
-                    { createId: userId.sub },
-                    { participants: { some: { id: userId.sub } } }
-                ]
-            },
-            include: { participants: true }
-        });
+    const newChat = await this.prisma.chat.create({
+      data: {
+        name,
+        createId: userId.sub,
+        active: true,
+        type: TypeChat.GROUP,
+        participantIds: participants,
+        participants: {
+          connect: participants.map((participantId) => ({ id: participantId })),
+        },
+      },
+    });
 
-        const deletedChats = await this.prisma.deletedChat.findMany({
-            where: { userId: userId.sub, active: true },
-            select: { chatId: true }
-        });
+    const chatPayload = {
+      id: newChat.id,
+      sender: newChat.createId,
+      timestamp: newChat.createdAt,
+      name: newChat.name,
+      type: newChat.type,
+      participants: newChat.participantIds,
+    };
 
-        const deletedChatIds = deletedChats.map(dc => dc.chatId);
+    const newRecipients = new Set([...newChat.participantIds, userId.sub]);
 
-        // Filtra os chats excluídos
-        const chats = allChats.filter(chat => !deletedChatIds.includes(chat.id));
-
-        return chats;
+    // Notifica todos os membros
+    for (const userId of newRecipients) {
+      this.chatGateway.sendChat(userId, chatPayload);
     }
 
-    // Atualiza informações de um chat em grupo
-    async updateGroupChat(id: string, updateGroup: UpdateGroupChatDTO) {
-        const { name, participants } = updateGroup;
+    return newChat;
+  }
 
-        await this.checkChatExist(id); // Valida existência
+  // Lista todos os chats do usuário, exceto os deletados
+  async findChats(user: { sub: string }, search?: string) {
+    // Busca todos os chats ativos em que o usuário é criador ou participante
+    const allChats = await this.prisma.chat.findMany({
+      where: {
+        active: true,
+        OR: [
+          { createId: user.sub },
+          { participants: { some: { id: user.sub } } },
+        ],
+      },
+      include: { participants: true },
+    });
 
-        return await this.prisma.chat.update({
-            where: { id },
-            data: {
-                name,
-                participants: { connect: participants.map(participantId => ({ id: participantId })) }
-            }
-        });
+    // Busca chats que o usuário deletou
+    const deletedChats = await this.prisma.deletedChat.findMany({
+      where: { userId: user.sub, active: true },
+      select: { chatId: true },
+    });
+
+    const deletedChatIds = deletedChats.map((dc) => dc.chatId);
+
+    // Filtra os chats excluídos
+    let chats = allChats.filter((chat) => !deletedChatIds.includes(chat.id));
+
+    // Se houver termo de busca, aplica filtro adicional
+    if (search) {
+      const searchLower = search.toLowerCase();
+      chats = chats.filter((chat) => {
+        const nameMatches = chat.name.toLowerCase().includes(searchLower);
+
+        return nameMatches;
+      });
     }
 
-    // Remove participantes de um grupo
-    async removeParticipantsByGroup(id: string, participants: string[]) {
-        await this.checkChatExist(id);
-        const deleteChat = await this.prisma.chat.update({
-            where: { id },
-            data: { participants: { disconnect: participants.map(participantId => ({ id: participantId })) } }
-        });
+    return chats;
+  }
 
-        const allUserIds = new Set([...deleteChat.participantIds, deleteChat.createId]);
+  // Atualiza informações de um chat em grupo
+  async updateGroupChat(id: string, updateGroup: UpdateGroupChatDTO) {
+    const { name, participants } = updateGroup;
 
-        // Verifica se todos saíram do grupo
-        const deletedChats = await this.prisma.deletedChat.findMany({ where: { chatId: id } });
+    await this.checkChatExist(id); // Valida existência
 
-        const deletedUserIds = new Set(deletedChats.map(dc => dc.userId));
+    return await this.prisma.chat.update({
+      where: { id },
+      data: {
+        name,
+        participants: {
+          connect: participants.map((participantId) => ({ id: participantId })),
+        },
+      },
+    });
+  }
 
-        const allLeft = Array.from(allUserIds).every(id => deletedUserIds.has(id));
+  // Remove participantes de um grupo
+  async removeParticipantsByGroup(id: string, participants: string[]) {
+    await this.checkChatExist(id);
+    const deleteChat = await this.prisma.chat.update({
+      where: { id },
+      data: {
+        participants: {
+          disconnect: participants.map((participantId) => ({
+            id: participantId,
+          })),
+        },
+      },
+    });
 
-        // Se todos saíram, desativa o chat
-        if (allLeft) {
-            await this.prisma.chat.update({
-                where: { id },
-                data: { active: false }
-            });
-        }
+    const allUserIds = new Set([
+      ...deleteChat.participantIds,
+      deleteChat.createId,
+    ]);
 
-        const payload = {
-            type: 'SYSTEM',
-            chatId: deleteChat.id,
-            userId: participants,
-            message: 'saiu do chat',
-            timestamp: new Date().toISOString(),
-        };
+    // Verifica se todos saíram do grupo
+    const deletedChats = await this.prisma.deletedChat.findMany({
+      where: { chatId: id },
+    });
 
-        const newRecipients = new Set([...deleteChat.participantIds, deleteChat.createId]);
+    const deletedUserIds = new Set(deletedChats.map((dc) => dc.userId));
 
-        // Notifica os demais membros
-        for (const userId of newRecipients) {
-            this.chatGateway.sendMessage(userId, payload);
-        }
-        return deleteChat;
+    const allLeft = Array.from(allUserIds).every((id) =>
+      deletedUserIds.has(id),
+    );
+
+    // Se todos saíram, desativa o chat
+    if (allLeft) {
+      await this.prisma.chat.update({
+        where: { id },
+        data: { active: false },
+      });
     }
 
-    // Deleta o chat apenas para o usuário (soft delete)
-    async deleteChatForUser(userId: { sub: string }, chatId: string) {
-        const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+    const payload = {
+      type: 'SYSTEM',
+      chatId: deleteChat.id,
+      userId: participants,
+      message: 'saiu do chat',
+      timestamp: new Date().toISOString(),
+    };
 
-        if (!chat) throw new NotFoundException('Chat não encontrado');
+    const newRecipients = new Set([
+      ...deleteChat.participantIds,
+      deleteChat.createId,
+    ]);
 
-        // Verifica se já há uma exclusão marcada
-        const existingDeleted = await this.prisma.deletedChat.findUnique({
-            where: { userId_chatId: { userId: userId.sub, chatId: chatId } }
-        });
+    // Notifica os demais membros
+    for (const userId of newRecipients) {
+      this.chatGateway.sendMessage(userId, payload);
+    }
+    return deleteChat;
+  }
 
-        if (existingDeleted) {
-            await this.prisma.deletedChat.update({
-                where: { id: existingDeleted.id },
-                data: { active: true }
-            });
-        } else {
-            await this.prisma.deletedChat.create({
-                data: { userId: userId.sub, chatId: chatId, active: true }
-            });
-        }
+  // Deleta o chat apenas para o usuário (soft delete)
+  async deleteChatForUser(userId: { sub: string }, chatId: string) {
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
 
-        const allUserIds = new Set([...chat.participantIds, chat.createId]);
+    if (!chat) throw new NotFoundException('Chat não encontrado');
 
-        const deletedChats = await this.prisma.deletedChat.findMany({
-            where: { chatId, active: true }
-        });
+    // Verifica se já há uma exclusão marcada
+    const existingDeleted = await this.prisma.deletedChat.findUnique({
+      where: { userId_chatId: { userId: userId.sub, chatId: chatId } },
+    });
 
-        const deletedUserIds = new Set(deletedChats.map(dc => dc.userId));
-
-        const allLeft = Array.from(allUserIds).every(id => deletedUserIds.has(id));
-
-        // Se todos saíram, desativa o chat
-        if (allLeft) {
-            await this.prisma.chat.update({
-                where: { id: chatId },
-                data: { active: false, updatedAt: new Date() }
-            });
-        }
-
-        // Cria mensagem de sistema informando saída
-        const message = {
-            type: 'SYSTEM',
-            chatId: chat.id,
-            authorId: userId.sub,
-            message: 'saiu do chat',
-            status: Status.USER,
-            seenStatus: SeenStatus.USER
-        };
-
-        const newMessage = await this.prisma.content.create({ data: message });
-
-        const chatPayload = {
-            id: newMessage.id,
-            sender: newMessage.authorId,
-            content: 'saiu do chat',
-            chatId: newMessage.chatId,
-            timestamp: newMessage.createdAt,
-            status: newMessage.status,
-            seenStatus: newMessage.seenStatus
-        };
-
-        const newRecipients = new Set([...chat.participantIds, chat.createId]);
-
-        // Notifica todos
-        for (const recipientId of newRecipients) {
-            this.chatGateway.sendMessage(recipientId, chatPayload);
-        }
-
-        return chat;
+    if (existingDeleted) {
+      await this.prisma.deletedChat.update({
+        where: { id: existingDeleted.id },
+        data: { active: true },
+      });
+    } else {
+      await this.prisma.deletedChat.create({
+        data: { userId: userId.sub, chatId: chatId, active: true },
+      });
     }
 
-    // Valida existência do chat
-    private async checkChatExist(id: string) {
-        const existChat = await this.prisma.chat.findUnique({ where: { id } });
+    const allUserIds = new Set([...chat.participantIds, chat.createId]);
 
-        if (!existChat) throw new NotFoundException("Chat não encontrado");
+    const deletedChats = await this.prisma.deletedChat.findMany({
+      where: { chatId, active: true },
+    });
+
+    const deletedUserIds = new Set(deletedChats.map((dc) => dc.userId));
+
+    const allLeft = Array.from(allUserIds).every((id) =>
+      deletedUserIds.has(id),
+    );
+
+    // Se todos saíram, desativa o chat
+    if (allLeft) {
+      await this.prisma.chat.update({
+        where: { id: chatId },
+        data: { active: false, updatedAt: new Date() },
+      });
     }
+
+    // Cria mensagem de sistema informando saída
+    const message = {
+      type: 'SYSTEM',
+      chatId: chat.id,
+      authorId: userId.sub,
+      message: 'saiu do chat',
+      status: Status.USER,
+      seenStatus: SeenStatus.USER,
+    };
+
+    const newMessage = await this.prisma.content.create({ data: message });
+
+    const chatPayload = {
+      id: newMessage.id,
+      sender: newMessage.authorId,
+      content: 'saiu do chat',
+      chatId: newMessage.chatId,
+      timestamp: newMessage.createdAt,
+      status: newMessage.status,
+      seenStatus: newMessage.seenStatus,
+      type: 'SYSTEM',
+    };
+
+    const newRecipients = new Set([...chat.participantIds, chat.createId]);
+
+    // Notifica todos
+    for (const recipientId of newRecipients) {
+      this.chatGateway.sendMessage(recipientId, chatPayload);
+    }
+
+    return chat;
+  }
+
+  // Valida existência do chat
+  private async checkChatExist(id: string) {
+    const existChat = await this.prisma.chat.findUnique({ where: { id } });
+
+    if (!existChat) throw new NotFoundException('Chat não encontrado');
+  }
 }

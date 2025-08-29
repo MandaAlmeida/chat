@@ -6,8 +6,7 @@ import { EnvModule } from '@/env/env.module';
 import { AuthModule } from '@/auth/auth.module';
 import { MessageModule } from '@/module/message.module';
 import { LoggerModule } from 'nestjs-pino';
-//  import { CustomLogger } from './logs/custom.logger';
-
+import { CustomLogger } from './logs/custom.logger';
 
 @Module({
   imports: [
@@ -20,9 +19,8 @@ import { LoggerModule } from 'nestjs-pino';
 
     // Config Logger
     // LoggerModule.forRoot({ pinoHttp: { level: 'trace' } }),
-
   ],
   // providers: [CustomLogger],
   // exports: [CustomLogger],
 })
-export class AppModule { }
+export class AppModule {}
