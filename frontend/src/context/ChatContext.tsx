@@ -305,8 +305,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.post("/message/last-messages", { chatIds });
 
-      console.log(res.data);
-
       setLastMessages((prev) => {
         const updated = { ...prev };
 
@@ -343,8 +341,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     fetchUsers();
   }, []);
   useEffect(() => {
-    if (!currentUser?.id) return;
-
     // Conecta o socket
     connectSocket(currentUser.id);
     const socket = getSocket();
@@ -362,6 +358,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     if (selectedChat) fetchMessages(selectedChat.id);
   }, [selectedChat]);
   useEffect(() => {
+    if (!currentUser?.id) return;
     if (chats.length > 0) fetchLastMessages(chats.map((c) => c.id));
   }, [chats]);
 
