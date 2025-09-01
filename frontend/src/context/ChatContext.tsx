@@ -86,7 +86,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const handleLogout = async () => {
     try {
       await api.post("/user/logout");
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       removeSocketListeners();
       console.log("Socket desconectado pelo frontend");
       navigate("/");
@@ -267,8 +268,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           new Date(data.createdAt) > new Date(lastMessage.timestamp) ||
           (new Date(data.timestamp) > new Date(lastMessage.timestamp) &&
             data.seenStatus === "SENT");
-
-        console.log(isNewer, data);
 
         if (!isNewer) return prev;
 

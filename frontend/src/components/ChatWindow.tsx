@@ -98,8 +98,6 @@ export default function ChatWindow() {
         selectedChat.createId
       : null;
 
-  console.log(usersStatus);
-
   const chatStatus =
     selectedChat.type !== "GROUP" && otherUserId
       ? usersStatus.find((u) => u.userId === otherUserId)?.userStatus

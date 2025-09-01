@@ -16,8 +16,6 @@ export default function ChatList() {
     fetchChats,
   } = useChat();
 
-  console.log(lastMessages);
-
   return (
     <div className="overflow-y-auto flex flex-col h-full">
       <header className="flex h-[95px] items-center justify-between p-6 border-b border-gray-300 relative">
