@@ -8,10 +8,11 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { EnvService } from '@/env/env.service';
 
 import * as redisStore from 'cache-manager-ioredis';
-
+import { MessageGateway } from '@/gateway/message.gateway';
 
 @Module({
-  imports: [PrismaModule,
+  imports: [
+    PrismaModule,
     AuthModule,
     EnvModule,
     CacheModule.registerAsync({
@@ -20,12 +21,12 @@ import * as redisStore from 'cache-manager-ioredis';
       inject: [EnvService],
       useFactory: async (env: EnvService) => ({
         store: redisStore,
-        url: env.get("REDIS_URL"),
+        url: env.get('REDIS_URL'),
         ttl: 60,
       }),
     }),
   ],
   controllers: [UserController],
-  providers: [UserService],
+  providers: [UserService, MessageGateway],
 })
-export class UserModule { }
+export class UserModule {}

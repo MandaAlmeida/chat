@@ -230,8 +230,11 @@ export class MessageService {
     for (const msg of messages) {
       const payload = {
         id: msg.id,
+        authorId: msg.authorId,
+        content: msg.message,
         chatId: msg.chatId,
-        seenStatus: SeenStatus.SEEN,
+        timestamp: msg.createdAt,
+        seenStatus: msg.seenStatus,
         status: msg.status,
       };
 

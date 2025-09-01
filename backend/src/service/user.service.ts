@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDTO, LoginUserDTO } from '@/contracts/user.dto';
@@ -12,6 +13,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EnvService } from '@/env/env.service';
 import { AuthService } from '@/auth/auth.service';
+import { MessageGateway } from '@/gateway/message.gateway';
 
 @Injectable()
 export class UserService {
@@ -22,6 +24,7 @@ export class UserService {
     private cacheManager: Cache,
     private config: EnvService,
     private authService: AuthService,
+    private readonly userGateway: MessageGateway,
   ) {}
 
   // Criação de um novo usuário
@@ -79,7 +82,10 @@ export class UserService {
   async login(user: LoginUserDTO) {
     const { email, password } = user;
 
-    const existUser = await this.prisma.user.findUnique({ where: { email } });
+    const existUser = await this.prisma.user.findUnique({
+      where: { email },
+      include: { Chat: true },
+    });
     if (!existUser || !existUser.password) {
       throw new UnauthorizedException('Senha ou email incorretos');
     }
@@ -95,6 +101,18 @@ export class UserService {
       data: { UserStatus: true },
     });
 
+    // Cria lista de todos os participantes
+    const newRecipients =
+      existUser.Chat?.flatMap((chat) => chat.participantIds ?? []) ?? [];
+
+    // Envia atualização de status para todos os participantes
+    for (const recipientId of newRecipients) {
+      this.userGateway.sendUser(recipientId, {
+        userId: existUser.id,
+        userStatus: true,
+      });
+    }
+
     const tokens = await this.authService.generateTokens(
       existUser.id.toString(),
     );
@@ -102,10 +120,40 @@ export class UserService {
   }
 
   async logout(user: { sub: string }) {
+    // Busca o usuário e seus chats
+    const existUser = await this.prisma.user.findUnique({
+      where: { id: user.sub },
+      include: { Chat: true },
+    });
+
+    if (!existUser) {
+      throw new NotFoundException(`User with id ${user.sub} not found.`);
+    }
+
+    // Atualiza o status do usuário
     await this.prisma.user.update({
       where: { id: user.sub },
       data: { UserStatus: false },
     });
+
+    // Pega o primeiro createId de algum chat, se existir
+    const userCreateId = existUser.Chat?.find(
+      (chat) => chat.createId,
+    )?.createId;
+
+    // Cria lista de todos os participantes
+    const newRecipients =
+      existUser.Chat?.flatMap((chat) => chat.participantIds ?? []) ?? [];
+
+    // Envia atualização de status para todos os participantes
+    for (const recipientId of newRecipients) {
+      this.userGateway.sendUser(recipientId, {
+        userId: existUser.id,
+        userStatus: false,
+      });
+    }
+
+    return { message: 'User logged out successfully', userId: userCreateId };
   }
 
   // Login via OAuth (Google, etc.)

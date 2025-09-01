@@ -23,7 +23,11 @@ export function HeaderChat({ name, status, children }: Props) {
           <h2 className="text-xl font-bold">{name}</h2>
           <section className="flex items-center gap-2 h-[18px]">
             {status ? (
-              <span className="w-2.5 h-2.5 bg-[#68D391] rounded-full flex"></span>
+              <span
+                className={`w-2.5 h-2.5 ${
+                  status === "Online" ? "bg-[#68D391]" : "bg-red-600"
+                } rounded-full flex`}
+              ></span>
             ) : null}
             <p className="text-[12px]">{status}</p>
           </section>

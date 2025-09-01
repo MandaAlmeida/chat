@@ -27,7 +27,7 @@ export class MessageController {
     @CurrentUser() user: { sub: string },
     @Body() newMessage: CreateMessageDTO,
   ) {
-    this.logger.error('Error from MessageController sendMessage');
+    // this.logger.error('Error from MessageController sendMessage');
     return this.messageService.sendMessage(user, newMessage);
   }
 
@@ -36,7 +36,7 @@ export class MessageController {
     @CurrentUser() user: { sub: string },
     @Param('id') chatId: string,
   ) {
-    this.logger.error('Error from MessageController findMessage');
+    // this.logger.error('Error from MessageController findMessage');
 
     return this.messageService.findMessage(user, chatId);
   }
@@ -46,7 +46,7 @@ export class MessageController {
     @CurrentUser() user: { sub: string },
     @Body('chatIds') chatIds: string[],
   ) {
-    this.logger.error('Error from MessageController findLastMessage');
+    // this.logger.error('Error from MessageController findLastMessage');
 
     return this.messageService.findLastMessagesForChats(user, chatIds);
   }
@@ -56,7 +56,7 @@ export class MessageController {
     @Param('id') id: string,
     @Body('message') message: string,
   ) {
-    this.logger.error('Error from MessageController updateMessage');
+    // this.logger.error('Error from MessageController updateMessage');
 
     return this.messageService.updateMessage(id, message);
   }
@@ -66,14 +66,14 @@ export class MessageController {
     @CurrentUser() user: { sub: string },
     @Body('ids') ids: string[],
   ) {
-    this.logger.error('Error from MessageController viewMessage');
+    // this.logger.error('Error from MessageController viewMessage');
 
     return this.messageService.viewMessage(ids);
   }
 
   @Delete(':id')
   async deleteMessage(@Param('id') ids: string[]) {
-    this.logger.error('Error from MessageController deleteMessage');
+    // this.logger.error('Error from MessageController deleteMessage');
 
     return this.messageService.deleteMessage(ids);
   }

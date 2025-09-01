@@ -2,6 +2,7 @@
 import { io, Socket } from "socket.io-client";
 import { apiUrl } from "./api";
 import type { ChatProps, Message } from "./types/types";
+import type { UserStatus } from "./context/ChatContext";
 
 let socket: Socket;
 
@@ -30,10 +31,12 @@ export const disconnectSocket = () => {
 
 export const setupSocketListeners = (
   onMessage: (msg: Message) => void,
-  onChatUpdate: (chat: ChatProps) => void
+  onChatUpdate: (chat: ChatProps) => void,
+  onUser: (user: UserStatus) => void
 ) => {
   if (!socket) return;
 
+  socket.on("user", onUser);
   socket.on("message", onMessage);
   socket.on("chat", onChatUpdate);
 };

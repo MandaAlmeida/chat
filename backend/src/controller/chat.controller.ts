@@ -31,7 +31,7 @@ export class ChatController {
     @CurrentUser() user: { sub: string },
     @Body() createChat: CreateChatDTO,
   ) {
-    this.logger.error('Error from ChatController createChat');
+    // this.logger.error('Error from ChatController createChat');
     return this.chatService.createChat(user, createChat);
   }
 
@@ -40,7 +40,7 @@ export class ChatController {
     @CurrentUser() user: { sub: string },
     @Body() createChat: CreateChatDTO,
   ) {
-    this.logger.error('Error from ChatController getOrCreateChat');
+    // this.logger.error('Error from ChatController getOrCreateChat');
     let chat = await this.chatService.findBetweenUsers(user, createChat);
 
     if (!chat) {
@@ -55,7 +55,7 @@ export class ChatController {
     @CurrentUser() user: { sub: string },
     @Body() createGroup: CreateGroupDTO,
   ) {
-    this.logger.error('Error from ChatController createGroupChat');
+    // this.logger.error('Error from ChatController createGroupChat');
     return await this.chatService.createGroupChat(user, createGroup);
   }
 
@@ -64,7 +64,7 @@ export class ChatController {
     @CurrentUser() user: { sub: string },
     @Query('search') search?: string, // opcional, para filtro
   ) {
-    this.logger.error('Error from ChatController findChat');
+    // this.logger.error('Error from ChatController findChat');
     return await this.chatService.findChats(user, search);
   }
 
@@ -73,7 +73,7 @@ export class ChatController {
     @Param('id') id: string,
     @Body() updateGroup: UpdateGroupChatDTO,
   ) {
-    this.logger.error('Error from ChatController updateGroupChat');
+    // this.logger.error('Error from ChatController updateGroupChat');
     return await this.chatService.updateGroupChat(id, updateGroup);
   }
 
@@ -82,7 +82,7 @@ export class ChatController {
     @Param('id') id: string,
     @Body() participants: string[],
   ) {
-    this.logger.error('Error from ChatController removeParticipantsByGroup');
+    // this.logger.error('Error from ChatController removeParticipantsByGroup');
     return await this.chatService.removeParticipantsByGroup(id, participants);
   }
 
@@ -91,7 +91,7 @@ export class ChatController {
     @CurrentUser() user: { sub: string },
     @Param('id') id: string,
   ) {
-    this.logger.error('Error from ChatController deleteChatForUser');
+    // this.logger.error('Error from ChatController deleteChatForUser');
     return await this.chatService.deleteChatForUser(user, id);
   }
 }

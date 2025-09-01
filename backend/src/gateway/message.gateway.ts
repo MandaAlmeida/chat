@@ -73,6 +73,11 @@ export class MessageGateway
     this.server.to(userId).emit('chat', chat);
   }
 
+  // Envia dados do usuario deslogado ou logado
+  sendUser(userId: string, user: any) {
+    this.server.to(userId).emit('user', user);
+  }
+
   // Envia mensagem para um usuário específico, adicionando timestamp
   sendMessage(userId: string, message: any) {
     this.server

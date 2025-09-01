@@ -29,6 +29,7 @@ type ChatContextType = {
   groupName: string;
   selectedUsers: string[];
   usersSearch: User[];
+  usersStatus: UserStatus[];
   setCurrentUser: React.Dispatch<React.SetStateAction<User>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   setChats: React.Dispatch<React.SetStateAction<ChatProps[]>>;
@@ -48,6 +49,11 @@ type ChatContextType = {
   markMessagesAsRead: (ids: string[]) => Promise<void>;
 };
 
+export type UserStatus = {
+  userId: string;
+  userStatus: boolean;
+};
+
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
@@ -60,6 +66,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   });
   const [users, setUsers] = useState<User[]>([]);
   const [usersSearch, setUsersSearch] = useState<User[]>([]);
+  const [usersStatus, setUsersStatus] = useState<UserStatus[]>([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [lastMessages, setLastMessages] = useState<Record<string, Message>>({});
@@ -125,7 +132,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       chatId: msg.chatId,
     }));
     setMessages(newMsgs);
-    markMessagesAsRead(messages.map((msg) => msg.id));
+    const messagesRead = messages
+      .filter((msg) => msg.seenStatus === "SENT" && msg.status !== "DELETE")
+      .map((msg) => msg.id);
+
+    markMessagesAsRead(messagesRead);
   };
 
   const markMessagesAsRead = async (ids: string[]) => {
@@ -160,8 +171,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
     await api.post("/message/send-message", payload);
 
+    const messagesRead = messages
+      .filter((msg) => msg.seenStatus === "SENT" && msg.status !== "DELETE")
+      .map((msg) => msg.id);
+
     setMessage("");
-    markMessagesAsRead(messages.map((msg) => msg.id));
+    markMessagesAsRead(messagesRead);
   };
 
   const createChat = async () => {
@@ -238,16 +253,42 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (selectedChat && data.chatId === selectedChat.id) {
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === data.id);
+
           return exists
             ? prev.map((m) => (m.id === data.id ? { ...m, ...data } : m))
             : [...prev, data];
         });
-
-        fetchLastMessages([data.chatId]);
       }
+
+      setLastMessages((prev) => {
+        const lastMessage = prev[data.chatId];
+        const isNewer =
+          !lastMessage ||
+          new Date(data.createdAt) > new Date(lastMessage.timestamp) ||
+          (new Date(data.timestamp) > new Date(lastMessage.timestamp) &&
+            data.seenStatus === "SENT");
+
+        console.log(isNewer, data);
+
+        if (!isNewer) return prev;
+
+        return {
+          ...prev,
+          [data.chatId]: data,
+        };
+      });
     },
     [selectedChat]
   );
+
+  const handleUser = useCallback((data: UserStatus) => {
+    setUsersStatus((prev) => {
+      const exists = prev.some((m) => m.userId === data.userId);
+      return exists
+        ? prev.map((m) => (m.userId === data.userId ? { ...m, ...data } : m))
+        : [...prev, data];
+    });
+  }, []);
 
   const handleChatUpdate = useCallback((data: ChatProps) => {
     setChats((prev) => {
@@ -263,6 +304,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const fetchLastMessages = async (chatIds: string[]) => {
     try {
       const res = await api.post("/message/last-messages", { chatIds });
+
+      console.log(res.data);
 
       setLastMessages((prev) => {
         const updated = { ...prev };
@@ -300,54 +343,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     fetchUsers();
   }, []);
   useEffect(() => {
-    if (currentUser?.id) {
-      connectSocket(currentUser.id);
-      const socket = getSocket();
-      socket.emit("newMessage", currentUser.id);
-      setupSocketListeners(handleMessage, handleChatUpdate);
-    }
-    return () => removeSocketListeners();
-  }, [currentUser, handleMessage, handleChatUpdate]);
+    if (!currentUser?.id) return;
+
+    // Conecta o socket
+    connectSocket(currentUser.id);
+    const socket = getSocket();
+
+    socket.emit("newMessage", currentUser.id);
+
+    setupSocketListeners(handleMessage, handleChatUpdate, handleUser);
+
+    return () => {
+      removeSocketListeners();
+    };
+  }, [currentUser, handleMessage, handleChatUpdate, handleUser]);
+
   useEffect(() => {
     if (selectedChat) fetchMessages(selectedChat.id);
   }, [selectedChat]);
   useEffect(() => {
     if (chats.length > 0) fetchLastMessages(chats.map((c) => c.id));
   }, [chats]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    connectSocket(currentUser.id); // garante que o socket exista
-    const socket = getSocket();
-
-    // Emite para o servidor que este usuário está online ou inicializa
-    socket.emit("newMessage", currentUser.id);
-
-    // Listener para novas mensagens (incluindo editadas/deletadas)
-    const handleMessageUpdate = (msg: any) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? { ...m, ...msg } : m))
-      );
-    };
-
-    // Listener para novas mensagens adicionadas
-    const handleNewMessage = (msg: any) => {
-      setMessages((prev) => [...prev, msg]);
-    };
-
-    // Listener para updates de chat
-    const handleChatUpdateWrapper = (chatData: any) => {
-      handleChatUpdate(chatData);
-    };
-
-    // Registra os listeners
-    socket.on("message", handleMessageUpdate); // atualizações de mensagem
-    socket.on("newMessage", handleNewMessage); // mensagem nova
-    socket.on("chatUpdate", handleChatUpdateWrapper);
-
-    return () => removeSocketListeners();
-  }, [currentUser, handleChatUpdate]);
 
   return (
     <ChatContext.Provider
@@ -364,6 +380,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         groupName,
         selectedUsers,
         usersSearch,
+        usersStatus,
         setCurrentUser,
         setUsers,
         setChats,

@@ -28,27 +28,27 @@ export class UserController {
 
   @Post('register')
   async create(@Body() createUserDto: CreateUserDTO) {
-    this.logger.error('Error from UserController create');
+    // this.logger.error('Error from UserController create');
 
     return this.userService.create(createUserDto);
   }
 
   @Post('login')
   async login(@Body() user: LoginUserDTO) {
-    this.logger.error('Error from UserController login');
+    // this.logger.error('Error from UserController login');
     return this.userService.login(user);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@CurrentUser() user: { sub: string }) {
-    this.logger.error('Error from UserController logout');
+    // this.logger.error('Error from UserController logout');
     return this.userService.logout(user);
   }
 
   @Post('register-oauth')
   async registerOAuthUser(@Body() user: CreateUserDTO) {
-    this.logger.error('Error from UserController registerOAuthUser');
+    // this.logger.error('Error from UserController registerOAuthUser');
 
     return this.userService.finishregisterOAuthUser(user);
   }
@@ -60,7 +60,7 @@ export class UserController {
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: any) {
-    this.logger.error('Error from UserController googleAuthRedirect');
+    // this.logger.error('Error from UserController googleAuthRedirect');
 
     const userProfile = req.user as { email: string; name: string };
 
@@ -81,7 +81,7 @@ export class UserController {
     @CurrentUser() user: { sub: string },
     @Query('search') search: string,
   ) {
-    this.logger.error('Error from UserController findAll');
+    // this.logger.error('Error from UserController findAll');
 
     return this.userService.findUsers(user, search);
   }
@@ -89,14 +89,14 @@ export class UserController {
   @Get('/me')
   @UseGuards(JwtAuthGuard)
   findOne(@CurrentUser() user: { sub: string }) {
-    this.logger.error('Error from UserController findOne');
+    // this.logger.error('Error from UserController findOne');
     return this.userService.findOne(user);
   }
 
   @Delete()
   @UseGuards(JwtAuthGuard)
   remove(@CurrentUser() user: { sub: string }) {
-    this.logger.error('Error from UserController remove');
+    // this.logger.error('Error from UserController remove');
     return this.userService.removeUser(user);
   }
 }

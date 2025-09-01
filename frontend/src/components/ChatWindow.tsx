@@ -14,10 +14,11 @@ export default function ChatWindow() {
     selectedChat,
     messages,
     message,
-    setMessage,
-    setMessages,
     currentUser,
     users,
+    usersStatus,
+    setMessage,
+    setMessages,
     handleSendMessage,
     deleteMessage,
   } = useChat();
@@ -91,12 +92,17 @@ export default function ChatWindow() {
       ? otherUser?.name || selectedChat.name
       : selectedChat.name;
 
-  // Agora chatStatus sempre será "Online" ou "Offline"
-  const chatStatus =
+  const otherUserId =
     selectedChat.type !== "GROUP"
-      ? selectedChat.participants.find((p) => p.id !== currentUser?.id)
-          ?.UserStatus === true ||
-        users.find((u) => u.id === selectedChat.createId)?.UserStatus === true
+      ? selectedChat.participants.find((p) => p.id !== currentUser?.id)?.id ||
+        selectedChat.createId
+      : null;
+
+  console.log(usersStatus);
+
+  const chatStatus =
+    selectedChat.type !== "GROUP" && otherUserId
+      ? usersStatus.find((u) => u.userId === otherUserId)?.userStatus
         ? "Online"
         : "Offline"
       : "";
