@@ -30,6 +30,8 @@ type ChatContextType = {
   selectedUsers: string[];
   usersSearch: User[];
   usersStatus: UserStatus[];
+  accessToken: string | null;
+  refreshToken: string | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   setChats: React.Dispatch<React.SetStateAction<ChatProps[]>>;
@@ -76,6 +78,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState("");
   const [chats, setChats] = useState<ChatProps[]>([]);
   const [createNewChat, setCreateNewChat] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
   // === FUNÇÕES ===
   const fetchUser = async () => {
@@ -86,13 +90,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const handleLogout = async () => {
     try {
       await api.post("/user/logout");
+    } catch (err) {
+      console.error("Erro no logout:", err);
+    } finally {
+      // Limpa tokens e desconecta sockets
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       removeSocketListeners();
-      console.log("Socket desconectado pelo frontend");
-      navigate("/");
-    } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
+
+      // Navega para a tela de login
+      navigate("/", { replace: true });
     }
   };
 
@@ -333,12 +340,26 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   // === EFFECTS ===
   useEffect(() => {
-    fetchChats();
-  }, []);
+    const accessToken = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+
+    // Redireciona somente se o usuário já estiver logado
+    if (accessToken && refreshToken) {
+      setAccessToken(accessToken);
+      setRefreshToken(refreshToken);
+      navigate("/chat");
+    }
+  }, [navigate]);
+
   useEffect(() => {
-    fetchUser();
-    fetchUsers();
-  }, []);
+    if (refreshToken) fetchChats();
+  }, [refreshToken]);
+  useEffect(() => {
+    if (refreshToken) {
+      fetchUser();
+      fetchUsers();
+    }
+  }, [refreshToken]);
   useEffect(() => {
     // Conecta o socket
     connectSocket(currentUser.id);
@@ -377,6 +398,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         selectedUsers,
         usersSearch,
         usersStatus,
+        accessToken,
+        refreshToken,
         setCurrentUser,
         setUsers,
         setChats,

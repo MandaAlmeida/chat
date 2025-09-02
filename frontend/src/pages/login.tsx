@@ -1,25 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { EnvelopeIcon, LockSimpleIcon } from "@phosphor-icons/react";
 import ButtonGoogle from "../components/buttonGoogle";
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get("refresh_token");
-
-    if (token) {
-      localStorage.setItem("refresh_token", token);
-      window.history.replaceState({}, document.title, "/");
-      navigate("/chat");
-    }
-  }, [location.search, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -59,15 +48,15 @@ export default function Login() {
           {error && <div className="text-red-500 text-sm">{error}</div>}
           <section
             className={`
-    w-full flex items-center gap-4 p-2 border rounded 
-    ${
-      isEmailErrored
-        ? "border-red-500"
-        : isEmailFilled
-        ? "border-[#615EF0]"
-        : "border-[#464646]"
-    }
-  `}
+              w-full flex items-center gap-4 p-2 border rounded 
+              ${
+                isEmailErrored
+                  ? "border-red-500"
+                  : isEmailFilled
+                  ? "border-[#615EF0]"
+                  : "border-[#464646]"
+              }
+            `}
           >
             <EnvelopeIcon
               size={20}
@@ -92,15 +81,15 @@ export default function Login() {
 
           <section
             className={`
-                         w-full flex items-center gap-4 p-2 border rounded 
-                         ${
-                           isPasswordErrored
-                             ? "border-red-500"
-                             : isPasswordFilled
-                             ? "border-[#615EF0]"
-                             : "border-[#464646]"
-                         }
-                         `}
+              w-full flex items-center gap-4 p-2 border rounded 
+              ${
+                isPasswordErrored
+                  ? "border-red-500"
+                  : isPasswordFilled
+                  ? "border-[#615EF0]"
+                  : "border-[#464646]"
+              }
+            `}
           >
             <LockSimpleIcon
               size={20}
@@ -136,7 +125,7 @@ export default function Login() {
 
           <ButtonGoogle text="Entrar como o google" />
           <div className="flex flex-col items-center">
-            <text className="text-[#464646]">Não possui uma conta ainda?</text>
+            <span className="text-[#464646]">Não possui uma conta ainda?</span>
             <Link
               to={"/register"}
               className="text-[#615EF0] underline font-bold  hover:text-[#3e3ca0] cursor-pointer"
