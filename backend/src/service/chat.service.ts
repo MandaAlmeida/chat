@@ -19,35 +19,26 @@ export class ChatService {
   async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
     const userId = createChat.participant;
 
-    // Busca por chat individual existente entre os dois usuários
     const chat = await this.prisma.chat.findFirst({
       where: {
         type: 'INDIVIDUAL',
         OR: [
-          {
-            createId: user.sub,
-            participantIds: { has: userId },
-          },
-          {
-            createId: userId,
-            participantIds: { has: user.sub },
-          },
+          { createId: user.sub, participantIds: { has: userId } },
+          { createId: userId, participantIds: { has: user.sub } },
         ],
       },
       include: { DeletedChat: true, participants: true, Content: true },
     });
 
-    // Se não existir chat, retorna null
     if (!chat) return null;
 
-    // Se o chat foi deletado, reativa
-    if (chat.DeletedChat && chat.DeletedChat[0].active) {
+    // Corrigido: evita erro se DeletedChat estiver vazio
+    if (chat.DeletedChat?.[0]?.active) {
       await this.prisma.deletedChat.update({
         where: { id: chat.DeletedChat[0].id },
         data: { active: false },
       });
 
-      // Cria mensagem de sistema informando que o usuário voltou ao chat
       const systemMessage = await this.prisma.content.create({
         data: {
           type: 'SYSTEM',
@@ -59,7 +50,6 @@ export class ChatService {
         },
       });
 
-      // Monta payload para enviar via WebSocket
       const chatPayload = {
         id: systemMessage.id,
         sender: systemMessage.authorId,
@@ -71,7 +61,6 @@ export class ChatService {
         type: 'SYSTEM',
       };
 
-      // Envia mensagem para todos os participantes do chat
       const recipients = new Set([...chat.participantIds, chat.createId]);
       for (const recipientId of recipients) {
         this.chatGateway.sendMessage(recipientId, chatPayload);
