@@ -19,6 +19,8 @@ export class ChatService {
   async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
     const userId = createChat.participant;
 
+    console.log(user.sub);
+
     const chat = await this.prisma.chat.findFirst({
       where: {
         type: 'INDIVIDUAL',
@@ -74,6 +76,7 @@ export class ChatService {
   async createChat(user: { sub: string }, createChat: CreateChatDTO) {
     const { name, participant } = createChat;
 
+    console.log(name, participant);
     // Valida se usuário existe
     const existUser = await this.prisma.user.findUnique({
       where: { id: participant },

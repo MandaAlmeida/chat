@@ -92,22 +92,35 @@ export default function ChatWindow() {
       ? otherUser?.name || selectedChat.name
       : selectedChat.name;
 
+  const chatEmail =
+    selectedChat.type !== "GROUP"
+      ? otherUser?.email ||
+        users.find((user) => user.id === selectedChat.id)?.email
+      : "";
+
   const otherUserId =
     selectedChat.type !== "GROUP"
       ? selectedChat.participants.find((p) => p.id !== currentUser?.id)?.id ||
         selectedChat.createId
       : null;
 
-  const chatStatus =
-    selectedChat.type !== "GROUP" && otherUserId
-      ? usersStatus.find((u) => u.userId === otherUserId)?.userStatus
-        ? "Online"
-        : "Offline"
-      : "";
+  console.log(usersStatus);
+
+  let chatStatus = "";
+
+  if (selectedChat.type !== "GROUP" && otherUserId) {
+    const userStatusObj = usersStatus.find((u) => u.userId === otherUserId);
+    if (userStatusObj) {
+      chatStatus = userStatusObj.userStatus ? "Online" : "Offline";
+    } else {
+      const user = users.find((u) => u.id === otherUser?.id);
+      chatStatus = user?.UserStatus ? "Online" : "Offline";
+    }
+  }
 
   return (
     <div className="w-full h-screen flex flex-col">
-      <HeaderChat name={chatName} status={chatStatus}>
+      <HeaderChat name={chatName} status={chatStatus} email={chatEmail}>
         {selectedMessages.size > 0 && (
           <div className="flex gap-2">
             {selectedMessages.size === 1 && (

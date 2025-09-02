@@ -69,6 +69,11 @@ export default function CreateChat() {
                     >
                       {user.name}
                     </p>
+                    <p
+                      className={`${isSelected ? "text-white" : "text-black"}`}
+                    >
+                      {user.email}
+                    </p>
                   </li>
                 );
               })}

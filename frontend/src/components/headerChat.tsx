@@ -3,11 +3,12 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 
 type Props = {
   name: string;
+  email?: string;
   status?: string;
   children?: React.ReactNode;
 };
 
-export function HeaderChat({ name, status, children }: Props) {
+export function HeaderChat({ name, email, status, children }: Props) {
   const { deleteChat, selectedChat, setSelectedChat } = useChat();
 
   return (
@@ -21,6 +22,7 @@ export function HeaderChat({ name, status, children }: Props) {
         </button>
         <div className="flex flex-col">
           <h2 className="text-xl font-bold">{name}</h2>
+          <span className="text-sm">{email}</span>
           <section className="flex items-center gap-2 h-[18px]">
             {status ? (
               <span
