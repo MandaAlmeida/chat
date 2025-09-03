@@ -36,6 +36,7 @@ export default function Login() {
       // Atualiza os dados do usuário no contexto
       await fetchUser();
     } catch (err: any) {
+      setIsLoading(false);
       if (err.response) {
         // Erro do backend (credenciais inválidas, etc.)
         setError(

@@ -342,7 +342,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             } as Message;
           }
         });
-        navigate("/chat");
         setIsLoading(false);
         return updated;
       });
@@ -393,6 +392,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!currentUser?.id) return;
     if (chats.length > 0) fetchLastMessages(chats.map((c) => c.id));
+    if (chats.length === 0 && currentUser) navigate("/chat");
   }, [chats]);
 
   return (
