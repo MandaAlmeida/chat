@@ -28,11 +28,11 @@ export function HeaderChat({
           <CaretLeftIcon size={26} color="#615EF0" />
         </button>
         <div className="flex flex-col">
-          <section className="flex items-center gap-3">
+          <section className="flex items-center gap-3 max-md:flex-col">
             <h2 className="text-xl font-bold">{name}</h2>
             {email && (
               <>
-                <span>-</span>
+                <span className="max-md:hidden">-</span>
                 <span className="text-sm">{email}</span>
               </>
             )}

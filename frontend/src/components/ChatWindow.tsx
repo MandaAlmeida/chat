@@ -119,7 +119,7 @@ export default function ChatWindow() {
       : "";
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full h-screen flex flex-col max-md:h-full">
       <HeaderChat
         name={chatName}
         status={chatStatus}
