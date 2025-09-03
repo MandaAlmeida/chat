@@ -392,7 +392,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!currentUser?.id) return;
     if (chats.length > 0) fetchLastMessages(chats.map((c) => c.id));
-    if (chats.length === 0 && currentUser) navigate("/chat");
+    if (chats.length === 0 && currentUser) {
+      navigate("/chat");
+      setIsLoading(false);
+    }
   }, [chats]);
 
   return (
