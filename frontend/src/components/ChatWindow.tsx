@@ -95,8 +95,15 @@ export default function ChatWindow() {
   const chatEmail =
     selectedChat.type !== "GROUP"
       ? otherUser?.email ||
-        users.find((user) => user.id === selectedChat.id)?.email
+        users.find((user) => user.id === selectedChat.createId)?.email
       : "";
+
+  const participantsNames =
+    selectedChat.type === "GROUP"
+      ? selectedChat.participants.map((p) => p.name)
+      : otherUser?.name
+      ? [otherUser.name]
+      : [];
 
   const otherUserId =
     selectedChat.type !== "GROUP"
@@ -104,23 +111,21 @@ export default function ChatWindow() {
         selectedChat.createId
       : null;
 
-  console.log(usersStatus);
-
-  let chatStatus = "";
-
-  if (selectedChat.type !== "GROUP" && otherUserId) {
-    const userStatusObj = usersStatus.find((u) => u.userId === otherUserId);
-    if (userStatusObj) {
-      chatStatus = userStatusObj.userStatus ? "Online" : "Offline";
-    } else {
-      const user = users.find((u) => u.id === otherUser?.id);
-      chatStatus = user?.UserStatus ? "Online" : "Offline";
-    }
-  }
+  const chatStatus =
+    selectedChat.type !== "GROUP" && otherUserId
+      ? usersStatus.find((u) => u.userId === otherUserId)?.userStatus
+        ? "Online"
+        : "Offline"
+      : "";
 
   return (
     <div className="w-full h-screen flex flex-col">
-      <HeaderChat name={chatName} status={chatStatus} email={chatEmail}>
+      <HeaderChat
+        name={chatName}
+        status={chatStatus}
+        email={chatEmail}
+        participants={participantsNames}
+      >
         {selectedMessages.size > 0 && (
           <div className="flex gap-2">
             {selectedMessages.size === 1 && (

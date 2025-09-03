@@ -3,12 +3,19 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 
 type Props = {
   name: string;
+  participants?: string[];
   email?: string;
   status?: string;
   children?: React.ReactNode;
 };
 
-export function HeaderChat({ name, email, status, children }: Props) {
+export function HeaderChat({
+  name,
+  email,
+  status,
+  participants,
+  children,
+}: Props) {
   const { deleteChat, selectedChat, setSelectedChat } = useChat();
 
   return (
@@ -21,17 +28,39 @@ export function HeaderChat({ name, email, status, children }: Props) {
           <CaretLeftIcon size={26} color="#615EF0" />
         </button>
         <div className="flex flex-col">
-          <h2 className="text-xl font-bold">{name}</h2>
-          <span className="text-sm">{email}</span>
+          <section className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">{name}</h2>
+            {email && (
+              <>
+                <span>-</span>
+                <span className="text-sm">{email}</span>
+              </>
+            )}
+          </section>
+
           <section className="flex items-center gap-2 h-[18px]">
             {status ? (
-              <span
-                className={`w-2.5 h-2.5 ${
-                  status === "Online" ? "bg-[#68D391]" : "bg-red-600"
-                } rounded-full flex`}
-              ></span>
-            ) : null}
-            <p className="text-[12px]">{status}</p>
+              // Mostra o status com bolinha
+              <>
+                <span
+                  className={`w-2.5 h-2.5 ${
+                    status === "Online" ? "bg-[#68D391]" : "bg-red-600"
+                  } rounded-full flex`}
+                ></span>
+                <p className="text-[12px]">{status}</p>
+              </>
+            ) : (
+              // Lista de participantes
+              <p className="text-sm text-gray-700">
+                {Array.isArray(participants) && participants.length > 0
+                  ? participants.length === 1
+                    ? participants[0] // Apenas um participante
+                    : participants.slice(0, -1).join(", ") +
+                      " e " +
+                      participants.slice(-1)
+                  : "Sem participantes"}
+              </p>
+            )}
           </section>
         </div>
       </div>

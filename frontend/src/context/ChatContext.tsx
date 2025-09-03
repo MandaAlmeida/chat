@@ -32,6 +32,7 @@ type ChatContextType = {
   usersStatus: UserStatus[];
   accessToken: string | null;
   refreshToken: string | null;
+  isLoading: boolean;
   setCurrentUser: React.Dispatch<React.SetStateAction<User>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   setChats: React.Dispatch<React.SetStateAction<ChatProps[]>>;
@@ -41,6 +42,7 @@ type ChatContextType = {
   setCreateNewChat: React.Dispatch<React.SetStateAction<boolean>>;
   setGroupName: React.Dispatch<React.SetStateAction<string>>;
   setSelectedUsers: React.Dispatch<React.SetStateAction<string[]>>;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   createChat: () => Promise<void>;
   deleteChat: (id: string) => Promise<void>;
   deleteMessage: (ids: string[]) => Promise<void>;
@@ -49,6 +51,7 @@ type ChatContextType = {
   handleLogout: () => void;
   fetchChats: (search?: string) => Promise<void>;
   markMessagesAsRead: (ids: string[]) => Promise<void>;
+  fetchUser: () => Promise<void>;
 };
 
 export type UserStatus = {
@@ -80,11 +83,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [createNewChat, setCreateNewChat] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // === FUNÇÕES ===
   const fetchUser = async () => {
     const res = await api.get("/user/me");
     setCurrentUser(res.data);
+    fetchChats();
   };
 
   const handleLogout = async () => {
@@ -111,6 +116,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
       setUsersSearch(res.data);
       if (search === "") setUsers(res.data);
+
+      setUsersStatus(
+        res.data.map((user: any) => ({
+          userId: user.id,
+          userStatus: user.UserStatus,
+        }))
+      );
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
     }
@@ -318,19 +330,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           if (msg?.chatId) {
             updated[msg.chatId] = {
               id: msg.id,
-              chatId: msg.chatId, // obrigatório
+              chatId: msg.chatId,
               authorId: msg.authorId,
-              content: msg.message, // campo usado no frontend
-              type: msg.type || "TEXT", // precisa ter tipo
+              content: msg.message,
+              type: msg.type || "TEXT",
               timestamp: msg.createdAt,
               seenStatus: msg.seenStatus,
               status: msg.status || null,
-              createdAt: msg.createdAt, // se o tipo exigir
-              updatedAt: msg.updatedAt || msg.createdAt, // se o tipo exigir
+              createdAt: msg.createdAt,
+              updatedAt: msg.updatedAt || msg.createdAt,
             } as Message;
           }
         });
-
+        navigate("/chat");
+        setIsLoading(false);
         return updated;
       });
     } catch (err) {
@@ -352,14 +365,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [navigate]);
 
   useEffect(() => {
-    if (refreshToken) fetchChats();
-  }, [refreshToken]);
+    if (accessToken) fetchChats();
+  }, [accessToken]);
   useEffect(() => {
-    if (refreshToken) {
+    if (accessToken) {
       fetchUser();
       fetchUsers();
     }
-  }, [refreshToken]);
+  }, [accessToken]);
   useEffect(() => {
     // Conecta o socket
     connectSocket(currentUser.id);
@@ -400,6 +413,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         usersStatus,
         accessToken,
         refreshToken,
+        isLoading,
+        setIsLoading,
         setCurrentUser,
         setUsers,
         setChats,
@@ -417,6 +432,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         handleLogout,
         fetchChats,
         markMessagesAsRead,
+        fetchUser,
       }}
     >
       {children}

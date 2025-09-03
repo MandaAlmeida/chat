@@ -19,7 +19,9 @@ export class ChatService {
   async findBetweenUsers(user: { sub: string }, createChat: CreateChatDTO) {
     const userId = createChat.participant;
 
-    console.log(user.sub);
+    const existUser = await this.prisma.user.findUnique({
+      where: { id: user.sub },
+    });
 
     const chat = await this.prisma.chat.findFirst({
       where: {
@@ -46,7 +48,7 @@ export class ChatService {
           type: 'SYSTEM',
           chatId: chat.id,
           authorId: user.sub,
-          message: 'entrou no chat',
+          message: `${existUser?.name} entrou no chat`,
           status: Status.USER,
           seenStatus: SeenStatus.USER,
         },
@@ -66,6 +68,10 @@ export class ChatService {
       const recipients = new Set([...chat.participantIds, chat.createId]);
       for (const recipientId of recipients) {
         this.chatGateway.sendMessage(recipientId, chatPayload);
+        this.chatGateway.sendUser(userId, {
+          userId: user.sub,
+          userStatus: true,
+        });
       }
     }
 
@@ -76,7 +82,6 @@ export class ChatService {
   async createChat(user: { sub: string }, createChat: CreateChatDTO) {
     const { name, participant } = createChat;
 
-    console.log(name, participant);
     // Valida se usuário existe
     const existUser = await this.prisma.user.findUnique({
       where: { id: participant },
@@ -112,6 +117,10 @@ export class ChatService {
     // Envia notificação via gateway
     for (const userId of newRecipients) {
       this.chatGateway.sendChat(userId, chatPayload);
+      this.chatGateway.sendUser(userId, {
+        userId: user.sub,
+        userStatus: true,
+      });
     }
 
     return newChat;

@@ -23,7 +23,7 @@ function App() {
             }
           />
         </Routes>
-      </ChatProvider>{" "}
+      </ChatProvider>
     </Router>
   );
 }
